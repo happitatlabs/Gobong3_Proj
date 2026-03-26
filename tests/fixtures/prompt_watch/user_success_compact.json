@@ -1,0 +1,39 @@
+{
+  "audience": "user",
+  "isSuccessResponse": true,
+  "prompt_watch": {
+    "active_character_id": "bot_char_01",
+    "active_character_name": "Aventurine",
+    "selected_speaker_id": "bot_char_01",
+    "selected_speaker_type": "bot",
+    "scene_id": "scene_default",
+    "world_id": "default",
+    "input_mode": "dialogue_only",
+    "target_character_hint": null,
+    "lore_hit_ids": [
+      "lore_001"
+    ],
+    "memory_hit_ids": [
+      "bot_char_01:0"
+    ],
+    "relationship_hit_ids": [],
+    "model": {
+      "provider": "ollama",
+      "model": "qwen3.5:9b",
+      "mode": "fast",
+      "source": "catalog",
+      "catalog_id": "rp_stable_main",
+      "label": "RP Stable Main",
+      "role_tags": [
+        "rp_stable",
+        "canon"
+      ]
+    },
+    "repair_used": false,
+    "fallback_used": false
+  },
+  "retrieval_debug": null,
+  "rp_debug": null,
+  "error_code": null,
+  "failure_reason": null
+}

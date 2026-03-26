@@ -1,0 +1,83 @@
+{
+  "timestamp": "2026-03-26T12:59:05",
+  "base_url": "http://127.0.0.1:8010",
+  "session_id": null,
+  "selected_catalog_id": null,
+  "prompt": "IPC 규약을 기억하고, 짧게 답하되 상황이나 행동 묘사를 한 줄 포함해줘.",
+  "checks": [
+    {
+      "name": "catalog_list",
+      "category": "core",
+      "severity": "hard",
+      "status": "failed",
+      "details": {
+        "session_id": null,
+        "http_status": null,
+        "error": "<urlopen error [WinError 10061] 대상 컴퓨터에서 연결을 거부했으므로 연결하지 못했습니다>"
+      }
+    },
+    {
+      "name": "catalog_select",
+      "category": "core",
+      "severity": "hard",
+      "status": "failed",
+      "details": {
+        "session_id": null,
+        "selected_catalog_id": null,
+        "error": "catalog selection skipped because no active catalog item was resolved"
+      }
+    },
+    {
+      "name": "explicit_select",
+      "category": "core",
+      "severity": "hard",
+      "status": "failed",
+      "details": {
+        "session_id": null,
+        "error": "explicit selection skipped because catalog item is unavailable"
+      }
+    },
+    {
+      "name": "explicit_user_compact",
+      "category": "content",
+      "severity": "soft",
+      "status": "skipped",
+      "details": {
+        "session_id": null,
+        "explicit_selection": null,
+        "error": "explicit user compact check skipped because explicit session is unavailable"
+      }
+    },
+    {
+      "name": "prompt_watch_admin_detail",
+      "category": "core",
+      "severity": "hard",
+      "status": "failed",
+      "details": {
+        "session_id": null,
+        "error": "prompt_watch admin detail skipped because catalog session is unavailable"
+      }
+    },
+    {
+      "name": "prompt_watch_user_compact",
+      "category": "content",
+      "severity": "soft",
+      "status": "skipped",
+      "details": {
+        "session_id": null,
+        "error": "prompt_watch user compact skipped because catalog session is unavailable"
+      }
+    }
+  ],
+  "summary": {
+    "core_total": 4,
+    "core_passed": 0,
+    "core_failed": 4,
+    "content_total": 2,
+    "content_passed": 0,
+    "content_failed": 0,
+    "warnings": 0,
+    "skipped": 2
+  },
+  "explicit_session_id": null
+}

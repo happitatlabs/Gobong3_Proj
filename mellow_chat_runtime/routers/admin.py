@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Literal, Optional
 
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, Field
+from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel, Field, ValidationError
 
 from mellow_chat_runtime import app_state
 from mellow_chat_runtime.core.domain_lookup_store import get_domain_store
+from mellow_chat_runtime.domain.schemas import ModelCatalogEntry
 from mellow_chat_runtime.services.summary_formatter import prepare_searchable_payload
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
@@ -36,6 +37,10 @@ class LoreUpsertRequest(BaseModel):
     data: Dict[str, Any]
 
 
+class ModelCatalogUpsertRequest(BaseModel):
+    data: Dict[str, Any]
+
+
 def _store():
     settings = app_state.settings
     data_path = getattr(settings, "domain_data_file", None) if settings else None
@@ -57,6 +62,16 @@ def _prepare_searchable_upsert(
     if vector_service is not None:
         updated = vector_service.mark_dirty_if_needed(section, key, updated, existing=existing)
     return prepare_searchable_payload(section, key, updated)
+
+
+def _validate_model_catalog_payload(model_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    data = dict(payload)
+    data["id"] = model_id
+    try:
+        item = ModelCatalogEntry(**data)
+    except ValidationError as exc:
+        raise HTTPException(status_code=422, detail=exc.errors()) from exc
+    return item.model_dump()
 
 
 @router.get("/characters")
@@ -157,6 +172,38 @@ async def upsert_lore_item(lore_id: str, request: LoreUpsertRequest) -> Dict[str
     payload["id"] = lore_id
     store.upsert("lorebook", lore_id, _prepare_searchable_upsert("lorebook", lore_id, payload))
     return {"success": True, "item": store.get_section_item("lorebook", lore_id)}
+
+
+@router.get("/models")
+async def list_models(status: Literal["active", "deprecated", "all"] = Query(default="all")) -> Dict[str, List[Dict[str, Any]]]:
+    store = _store()
+    return {"items": list(store.list_model_catalog(status=status).values())}
+
+
+@router.get("/models/{model_id}")
+async def get_model_catalog_item(model_id: str) -> Dict[str, Any]:
+    store = _store()
+    item = store.get_model_catalog_item(model_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Model catalog entry not found")
+    return item
+
+
+@router.put("/models/{model_id}")
+async def upsert_model_catalog_item(model_id: str, request: ModelCatalogUpsertRequest) -> Dict[str, Any]:
+    store = _store()
+    validated = _validate_model_catalog_payload(model_id, request.data)
+    store.upsert("model_catalog", model_id, validated)
+    return {"success": True, "item": store.get_model_catalog_item(model_id)}
+
+
+@router.delete("/models/{model_id}")
+async def delete_model_catalog_item(model_id: str) -> Dict[str, Any]:
+    store = _store()
+    deleted = store.delete("model_catalog", model_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Model catalog entry not found")
+    return {"success": True, "deleted_id": model_id}
 
 
 @router.post("/vector/reindex")

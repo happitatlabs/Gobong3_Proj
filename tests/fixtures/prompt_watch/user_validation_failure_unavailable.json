@@ -1,0 +1,9 @@
+{
+  "audience": "user",
+  "isSuccessResponse": false,
+  "prompt_watch": null,
+  "retrieval_debug": null,
+  "rp_debug": null,
+  "error_code": "NARRATION_RULE_FAILED",
+  "failure_reason": "missing_narration"
+}

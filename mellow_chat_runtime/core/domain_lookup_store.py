@@ -41,6 +41,18 @@ class DomainLookupStore:
     def get_dialogue_priority(self, scene_id: str = "default") -> Dict[str, Any]:
         raise NotImplementedError
 
+    def get_model_catalog_item(self, model_id: str) -> Dict[str, Any]:
+        raise NotImplementedError
+
+    def list_model_catalog(
+        self,
+        *,
+        audience: Optional[str] = None,
+        role_tag: Optional[str] = None,
+        status: str = "active",
+    ) -> Dict[str, Dict[str, Any]]:
+        raise NotImplementedError
+
     def list_section(self, section: str) -> Dict[str, Dict[str, Any]]:
         raise NotImplementedError
 
@@ -221,6 +233,52 @@ class JsonDomainLookupStore(DomainLookupStore):
                     "rules": "Major characters lead the turn, but minor characters should still enter regularly.",
                 }
             },
+            "model_catalog": {
+                "rp_stable_main": {
+                    "id": "rp_stable_main",
+                    "label": "RP Stable Main",
+                    "provider": "ollama",
+                    "model": "qwen3.5:9b",
+                    "default_mode": "fast",
+                    "role_tags": ["rp_stable", "canon"],
+                    "audiences": ["user", "admin"],
+                    "status": "active",
+                    "description": "Default stable roleplay generation model.",
+                },
+                "emotion_focus_main": {
+                    "id": "emotion_focus_main",
+                    "label": "Emotion Focus",
+                    "provider": "ollama",
+                    "model": "qwen3.5:9b",
+                    "default_mode": "thinking",
+                    "role_tags": ["emotion"],
+                    "audiences": ["user", "admin"],
+                    "status": "active",
+                    "description": "Use when emotional nuance matters more than speed.",
+                },
+                "qa_repro_admin": {
+                    "id": "qa_repro_admin",
+                    "label": "QA Repro",
+                    "provider": "ollama",
+                    "model": "qwen3.5:9b",
+                    "default_mode": "research",
+                    "role_tags": ["qa_repro", "low_cost_test"],
+                    "audiences": ["admin"],
+                    "status": "active",
+                    "description": "Use for admin reproduction and low-cost QA runs.",
+                },
+                "repair_admin": {
+                    "id": "repair_admin",
+                    "label": "Repair Assist",
+                    "provider": "ollama",
+                    "model": "qwen3.5:9b",
+                    "default_mode": "thinking",
+                    "role_tags": ["repair", "canon"],
+                    "audiences": ["admin"],
+                    "status": "deprecated",
+                    "description": "Legacy repair-oriented profile kept for reproduction.",
+                },
+            },
         }
         self._load_from_disk()
 
@@ -299,6 +357,38 @@ class JsonDomainLookupStore(DomainLookupStore):
     def get_dialogue_priority(self, scene_id: str = "default") -> Dict[str, Any]:
         return dict(self._data.get("dialogue_priority", {}).get(scene_id, self._data["dialogue_priority"]["default"]))
 
+    def get_model_catalog_item(self, model_id: str) -> Dict[str, Any]:
+        return self.get_section_item("model_catalog", model_id)
+
+    def list_model_catalog(
+        self,
+        *,
+        audience: Optional[str] = None,
+        role_tag: Optional[str] = None,
+        status: str = "active",
+    ) -> Dict[str, Dict[str, Any]]:
+        items = self.list_section("model_catalog")
+        audience_filter = (audience or "").strip().lower()
+        role_tag_filter = (role_tag or "").strip().lower()
+        status_filter = (status or "active").strip().lower() or "active"
+        out: Dict[str, Dict[str, Any]] = {}
+        for key, item in items.items():
+            item_status = str(item.get("status") or "active").strip().lower() or "active"
+            if status_filter == "active" and item_status != "active":
+                continue
+            if status_filter == "deprecated" and item_status != "deprecated":
+                continue
+            audiences = item.get("audiences", []) if isinstance(item.get("audiences", []), list) else []
+            normalized_audiences = [str(value).strip().lower() for value in audiences if str(value).strip()]
+            if audience_filter and audience_filter not in normalized_audiences:
+                continue
+            role_tags = item.get("role_tags", []) if isinstance(item.get("role_tags", []), list) else []
+            normalized_role_tags = [str(value).strip().lower() for value in role_tags if str(value).strip()]
+            if role_tag_filter and role_tag_filter not in normalized_role_tags:
+                continue
+            out[key] = dict(item)
+        return out
+
     def list_section(self, section: str) -> Dict[str, Dict[str, Any]]:
         raw = self._data.get(section, {})
         if not isinstance(raw, dict):
@@ -373,6 +463,18 @@ class VectorDomainLookupStore(DomainLookupStore):
 
     def get_dialogue_priority(self, scene_id: str = "default") -> Dict[str, Any]:
         return self._fallback.get_dialogue_priority(scene_id)
+
+    def get_model_catalog_item(self, model_id: str) -> Dict[str, Any]:
+        return self._fallback.get_model_catalog_item(model_id)
+
+    def list_model_catalog(
+        self,
+        *,
+        audience: Optional[str] = None,
+        role_tag: Optional[str] = None,
+        status: str = "active",
+    ) -> Dict[str, Dict[str, Any]]:
+        return self._fallback.list_model_catalog(audience=audience, role_tag=role_tag, status=status)
 
     def list_section(self, section: str) -> Dict[str, Dict[str, Any]]:
         return self._fallback.list_section(section)

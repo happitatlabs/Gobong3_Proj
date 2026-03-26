@@ -187,5 +187,72 @@
       "max_consecutive_turns": 1,
       "rules": "Major characters lead the turn, but minor characters should still enter regularly."
     }
+  },
+  "model_catalog": {
+    "rp_stable_main": {
+      "id": "rp_stable_main",
+      "label": "RP Stable Main",
+      "provider": "ollama",
+      "model": "qwen3.5:9b",
+      "default_mode": "fast",
+      "role_tags": [
+        "rp_stable",
+        "canon"
+      ],
+      "audiences": [
+        "user",
+        "admin"
+      ],
+      "status": "active",
+      "description": "Default stable roleplay generation model."
+    },
+    "emotion_focus_main": {
+      "id": "emotion_focus_main",
+      "label": "Emotion Focus",
+      "provider": "ollama",
+      "model": "qwen3.5:9b",
+      "default_mode": "thinking",
+      "role_tags": [
+        "emotion"
+      ],
+      "audiences": [
+        "user",
+        "admin"
+      ],
+      "status": "active",
+      "description": "Use when emotional nuance matters more than speed."
+    },
+    "qa_repro_admin": {
+      "id": "qa_repro_admin",
+      "label": "QA Repro",
+      "provider": "ollama",
+      "model": "qwen3.5:9b",
+      "default_mode": "research",
+      "role_tags": [
+        "qa_repro",
+        "low_cost_test"
+      ],
+      "audiences": [
+        "admin"
+      ],
+      "status": "active",
+      "description": "Use for admin reproduction and low-cost QA runs."
+    },
+    "repair_admin": {
+      "id": "repair_admin",
+      "label": "Repair Assist",
+      "provider": "ollama",
+      "model": "qwen3.5:9b",
+      "default_mode": "thinking",
+      "role_tags": [
+        "repair",
+        "canon"
+      ],
+      "audiences": [
+        "admin"
+      ],
+      "status": "deprecated",
+      "description": "Legacy repair-oriented profile kept for reproduction."
+    }
   }
 }

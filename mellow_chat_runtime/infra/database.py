@@ -35,6 +35,7 @@ class ChatSession(Base):
     selected_model_provider = Column(String(80), nullable=True)
     selected_model_name = Column(String(120), nullable=True)
     selected_model_mode = Column(String(50), nullable=True)
+    selected_model_catalog_id = Column(String(120), nullable=True)
     user_character_ids_json = Column(Text, nullable=True)
     bot_character_ids_json = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
@@ -90,6 +91,8 @@ def _ensure_chat_session_columns() -> None:
             conn.execute(text("ALTER TABLE chat_sessions ADD COLUMN selected_model_name VARCHAR(120)"))
         if "selected_model_mode" not in columns:
             conn.execute(text("ALTER TABLE chat_sessions ADD COLUMN selected_model_mode VARCHAR(50)"))
+        if "selected_model_catalog_id" not in columns:
+            conn.execute(text("ALTER TABLE chat_sessions ADD COLUMN selected_model_catalog_id VARCHAR(120)"))
         if "user_character_ids_json" not in columns:
             conn.execute(text("ALTER TABLE chat_sessions ADD COLUMN user_character_ids_json TEXT"))
         if "bot_character_ids_json" not in columns:

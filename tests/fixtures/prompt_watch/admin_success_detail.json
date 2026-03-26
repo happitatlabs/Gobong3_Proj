@@ -1,0 +1,130 @@
+{
+  "audience": "admin",
+  "isSuccessResponse": true,
+  "prompt_watch": {
+    "active_character_id": "bot_char_01",
+    "active_character_name": "Aventurine",
+    "selected_speaker_id": "bot_char_01",
+    "selected_speaker_type": "bot",
+    "scene_id": "scene_default",
+    "world_id": "default",
+    "input_mode": "dialogue_only",
+    "target_character_hint": null,
+    "lore_hit_ids": [
+      "lore_001"
+    ],
+    "memory_hit_ids": [
+      "bot_char_01:0",
+      "bot_char_01:1"
+    ],
+    "relationship_hit_ids": [
+      "bot_char_01:bot_char_02"
+    ],
+    "model": {
+      "provider": "ollama",
+      "model": "qwen3.5:9b",
+      "mode": "fast",
+      "source": "session",
+      "catalog_id": "rp_stable_main",
+      "label": "RP Stable Main",
+      "role_tags": [
+        "rp_stable",
+        "canon"
+      ]
+    },
+    "repair_used": false,
+    "fallback_used": false,
+    "applied_persona_id": "default",
+    "applied_user_profile_id": "user_char_01",
+    "generation_path": {
+      "validator_passed": true,
+      "repair_used": false,
+      "fallback_used": false,
+      "retry_count": 0,
+      "final_verdict": "pass",
+      "failure_reason": null
+    },
+    "applied_context": {
+      "lore": [
+        {
+          "id": "lore_001",
+          "source": "canonical",
+          "topic": "Interastral Peace Corporation",
+          "character_id": null,
+          "target_id": null,
+          "summary_text": "Interastral Peace Corporation is the primary political and financial organization referenced in this scene."
+        }
+      ],
+      "memories": [
+        {
+          "id": "bot_char_01:0",
+          "source": "canonical",
+          "topic": null,
+          "character_id": "bot_char_01",
+          "target_id": null,
+          "summary_text": "Aventurine remembers prior negotiations where IPC protocol mattered."
+        },
+        {
+          "id": "bot_char_01:1",
+          "source": "canonical",
+          "topic": null,
+          "character_id": "bot_char_01",
+          "target_id": null,
+          "summary_text": "He tends to frame risk as a calculated trade instead of a moral dilemma."
+        }
+      ],
+      "relationships": [
+        {
+          "id": "bot_char_01:bot_char_02",
+          "source": "canonical",
+          "topic": null,
+          "character_id": "bot_char_01",
+          "target_id": "bot_char_02",
+          "summary_text": "Tense but functional rapport shaped by strategic caution."
+        }
+      ],
+      "scene": {
+        "goal": "대화 정리",
+        "mood": "calm"
+      }
+    }
+  },
+  "retrieval_debug": {
+    "query": "IPC protocol prompt watch fixture query",
+    "lore_source": "canonical",
+    "memory_source": "canonical",
+    "relationship_source": "canonical",
+    "lore_hit_ids": [
+      "lore_001"
+    ],
+    "memory_hit_ids": [
+      "bot_char_01:0",
+      "bot_char_01:1"
+    ],
+    "relationship_hit_ids": [
+      "bot_char_01:bot_char_02"
+    ],
+    "lore_scores": {
+      "lore_001": 0.99
+    },
+    "memory_scores": {
+      "bot_char_01:0": 0.91,
+      "bot_char_01:1": 0.73
+    },
+    "relationship_scores": {
+      "bot_char_01:bot_char_02": 0.84
+    },
+    "errors": [],
+    "fallback_used": false
+  },
+  "rp_debug": {
+    "validator_passed": true,
+    "fallback_used": false,
+    "retry_count": 0,
+    "final_verdict": "PASS",
+    "failure_reason": null,
+    "failure_reasons": []
+  },
+  "error_code": null,
+  "failure_reason": null
+}

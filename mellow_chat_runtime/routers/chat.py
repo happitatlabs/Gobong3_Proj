@@ -30,6 +30,7 @@ from mellow_chat_runtime.infra.database import (
 )
 from mellow_chat_runtime.services.memory_promotion_service import MemoryPromotionService
 from mellow_chat_runtime.services.model_routing_service import ModelRoutingService
+from mellow_chat_runtime.services.summary_formatter import build_prompt_watch_summary
 from mellow_chat_runtime.services.vector_retrieval_service import RetrievalQueryContext, VectorRetrievalService
 
 router = APIRouter(tags=['Chat'])
@@ -43,6 +44,7 @@ class ChatRequest(BaseModel):
     mode: str = Field('fast')
     provider: Optional[str] = None
     model: Optional[str] = None
+    catalog_id: Optional[str] = None
     session_id: Optional[int] = None
     stream: bool = True
     persona_id: str = 'default'
@@ -309,6 +311,122 @@ def _build_retrieval_debug_payload(query: str, retrieval_context: Dict[str, Any]
     }
 
 
+def _build_prompt_watch_generation_path(result: Any) -> Dict[str, Any]:
+    retry_count = int(getattr(result, 'retry_count', 0) or 0)
+    fallback_used = bool(getattr(result, 'fallback_used', False))
+    validator_passed = bool(getattr(result, 'validator_passed', False))
+    if fallback_used:
+        final_verdict = 'fallback'
+    elif validator_passed and retry_count > 0:
+        final_verdict = 'repaired'
+    elif validator_passed:
+        final_verdict = 'pass'
+    else:
+        final_verdict = 'failed'
+    return {
+        'validator_passed': getattr(result, 'validator_passed', None),
+        'repair_used': retry_count > 0,
+        'fallback_used': fallback_used,
+        'retry_count': retry_count,
+        'final_verdict': final_verdict,
+        'failure_reason': str(getattr(result, 'failure_reason', '') or '') or None,
+    }
+
+
+def _resolve_prompt_watch_character(domain_store: Any, character_id: Optional[str], fallback: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    cleaned = str(character_id or '').strip()
+    if cleaned:
+        user_character = domain_store.get_user_character(cleaned)
+        if user_character:
+            return user_character
+        bot_character = domain_store.get_bot_character(cleaned)
+        if bot_character:
+            return bot_character
+        return {'id': cleaned, 'name': cleaned}
+    return dict(fallback or {})
+
+
+def _build_prompt_watch_context_items(items: Any, section: str, source: Optional[str]) -> List[Dict[str, Any]]:
+    if not isinstance(items, list):
+        return []
+    out: List[Dict[str, Any]] = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        raw_id = item.get('id') or item.get('source_id')
+        if not raw_id and item.get('character_id') and item.get('target_id'):
+            raw_id = f"{item.get('character_id')}:{item.get('target_id')}"
+        summary_text = build_prompt_watch_summary(section, item)
+        out.append({
+            'id': str(raw_id or '').strip() or None,
+            'source': source,
+            'topic': str(item.get('topic') or '').strip() or None,
+            'character_id': str(item.get('character_id') or '').strip() or None,
+            'target_id': str(item.get('target_id') or '').strip() or None,
+            'summary_text': summary_text,
+        })
+    return out
+
+
+def _build_prompt_watch_payload(
+    request: ChatRequest,
+    selection: Any,
+    selected_speaker_id: Optional[str],
+    selected_speaker_type: Optional[str],
+    parsed_scene_event: ParsedSceneEvent,
+    retrieval_context: Dict[str, Any],
+    retrieval_debug: Dict[str, Any],
+    result: Any,
+    active_character: Dict[str, Any],
+    scene_state: Dict[str, Any],
+) -> Dict[str, Any]:
+    applied_lore = retrieval_context.get('lore', [])[:3] if isinstance(retrieval_context.get('lore'), list) else []
+    applied_memories = retrieval_context.get('memories', [])[:4] if isinstance(retrieval_context.get('memories'), list) else []
+    applied_relationships = retrieval_context.get('relationships', [])[:2] if isinstance(retrieval_context.get('relationships'), list) else []
+    generation_path = _build_prompt_watch_generation_path(result)
+    compact = {
+        'active_character_id': str(active_character.get('id') or selected_speaker_id or '').strip() or None,
+        'active_character_name': str(active_character.get('name') or '').strip() or None,
+        'selected_speaker_id': selected_speaker_id,
+        'selected_speaker_type': selected_speaker_type,
+        'scene_id': request.scene_id,
+        'world_id': request.world_id,
+        'input_mode': getattr(parsed_scene_event, 'input_mode', None),
+        'target_character_hint': getattr(parsed_scene_event, 'target_character_hint', None),
+        'lore_hit_ids': _extract_hit_ids(applied_lore),
+        'memory_hit_ids': _extract_hit_ids(applied_memories),
+        'relationship_hit_ids': _extract_hit_ids(applied_relationships),
+        'model': {
+            'provider': selection.provider,
+            'model': selection.model,
+            'mode': selection.mode,
+            'source': selection.source,
+            'catalog_id': selection.catalog_id,
+            'label': selection.label,
+            'role_tags': list(selection.role_tags or []),
+        },
+        'repair_used': bool(generation_path['repair_used']),
+        'fallback_used': bool(generation_path['fallback_used']),
+    }
+    if request.audience != 'admin':
+        return compact
+    return {
+        **compact,
+        'applied_persona_id': request.persona_id,
+        'applied_user_profile_id': request.user_profile_id,
+        'generation_path': generation_path,
+        'applied_context': {
+            'lore': _build_prompt_watch_context_items(applied_lore, 'lorebook', retrieval_debug.get('lore_source')),
+            'memories': _build_prompt_watch_context_items(applied_memories, 'memories', retrieval_debug.get('memory_source')),
+            'relationships': _build_prompt_watch_context_items(applied_relationships, 'relationships', retrieval_debug.get('relationship_source')),
+            'scene': {
+                'goal': str(scene_state.get('goal') or '').strip(),
+                'mood': str(scene_state.get('mood') or '').strip(),
+            },
+        },
+    }
+
+
 def _list_known_characters(domain_store: Any) -> List[Dict[str, Any]]:
     user_characters = list(domain_store.list_section('user_characters').values())
     bot_characters = list(domain_store.list_section('bot_characters').values())
@@ -495,13 +613,22 @@ async def chat_ask(request: ChatRequest, http_request: Request, x_user: Optional
     history_rows = db.query(ChatMessage).filter(ChatMessage.session_id == session.id).order_by(ChatMessage.timestamp.asc()).all()
     history = _build_sanitized_history(history_rows, max_items=8)
     recent_speaker_history = [str(row.speaker_id) for row in history_rows if row.speaker_id]
-    selection = model_router.resolve(
-        session=session,
-        llm_service=app_state.llm_service,
-        mode=request.mode,
-        request_provider=request.provider,
-        request_model=request.model,
-    )
+    request_catalog_entry = domain_store.get_model_catalog_item(request.catalog_id or '') if request.catalog_id else {}
+    session_catalog_entry = domain_store.get_model_catalog_item(session.selected_model_catalog_id or '') if session.selected_model_catalog_id else {}
+    try:
+        selection = model_router.resolve(
+            session=session,
+            llm_service=app_state.llm_service,
+            mode=request.mode,
+            request_provider=request.provider,
+            request_model=request.model,
+            request_catalog_id=request.catalog_id,
+            request_mode=request.mode if request.provider and request.model else None,
+            request_catalog_entry=request_catalog_entry,
+            session_catalog_entry=session_catalog_entry,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     memory_promotion_enabled = bool(getattr(app_state.settings, 'memory_promotion_enabled', True))
     memory_promotion_service = MemoryPromotionService(
         domain_store=domain_store,
@@ -545,6 +672,7 @@ async def chat_ask(request: ChatRequest, http_request: Request, x_user: Optional
     speaker_type = 'bot'
     if selected_speaker_id and domain_store.get_user_character(selected_speaker_id):
         speaker_type = 'user'
+    active_character = _resolve_prompt_watch_character(domain_store, selected_speaker_id or request.character_id)
     used_context = {
         'persona_id': request.persona_id,
         'user_profile_id': request.user_profile_id,
@@ -613,7 +741,7 @@ async def chat_ask(request: ChatRequest, http_request: Request, x_user: Optional
                 user_input=request.question,
                 history=history,
                 retrieval_context=retrieval_context,
-                mode=request.mode,
+                mode=selection.mode,
                 persona_id=request.persona_id,
                 user_profile_id=request.user_profile_id,
                 lore_topic=effective_lore_topic,
@@ -641,7 +769,7 @@ async def chat_ask(request: ChatRequest, http_request: Request, x_user: Optional
                 speaker_id=selected_speaker_id,
                 speaker_type=speaker_type,
                 content=full,
-                selected_mode=request.mode,
+                selected_mode=selection.mode,
                 processing_time=elapsed_ms,
             )
             db.add(assistant)
@@ -661,7 +789,7 @@ async def chat_ask(request: ChatRequest, http_request: Request, x_user: Optional
                 'speaker_type': speaker_type,
                 'model_provider': selection.provider,
                 'model_name': selection.model,
-                'selected_mode': request.mode,
+                'selected_mode': selection.mode,
                 'processing_time_ms': elapsed_ms,
                 'used_context': used_context,
                 'model': {
@@ -669,9 +797,25 @@ async def chat_ask(request: ChatRequest, http_request: Request, x_user: Optional
                     'model': selection.model,
                     'mode': selection.mode,
                     'source': selection.source,
+                    'catalog_id': selection.catalog_id,
+                    'label': selection.label,
+                    'role_tags': list(selection.role_tags or []),
+                    'status': selection.status,
                 },
                 'request_id': request_id,
             }
+            done_payload['prompt_watch'] = _build_prompt_watch_payload(
+                request=request,
+                selection=selection,
+                selected_speaker_id=selected_speaker_id,
+                selected_speaker_type=speaker_type,
+                parsed_scene_event=parsed_scene_event,
+                retrieval_context=retrieval_context,
+                retrieval_debug=retrieval_debug,
+                result=result,
+                active_character=active_character,
+                scene_state=scene_state if isinstance(scene_state, dict) else {},
+            )
             if request.audience == 'admin':
                 done_payload['retrieval_debug'] = retrieval_debug
             if request.audience == 'admin':
@@ -681,6 +825,7 @@ async def chat_ask(request: ChatRequest, http_request: Request, x_user: Optional
                     'retry_count': result.retry_count,
                     'final_verdict': result.final_verdict,
                     'failure_reason': result.failure_reason,
+                    'failure_reasons': result.failure_reasons,
                 }
             logger.info(
                 'chat.ask.end request_id=%s session_id=%s message_id=%s success=true latency_ms=%s',
@@ -782,7 +927,7 @@ async def chat_ask(request: ChatRequest, http_request: Request, x_user: Optional
             speaker_id=selected_speaker_id,
             speaker_type=speaker_type,
             content=cleaned_response,
-            selected_mode=request.mode,
+            selected_mode=selection.mode,
             processing_time=elapsed_ms,
         )
         db.add(assistant)
@@ -807,7 +952,7 @@ async def chat_ask(request: ChatRequest, http_request: Request, x_user: Optional
             'speaker_type': speaker_type,
             'model_provider': selection.provider,
             'model_name': selection.model,
-            'selected_mode': request.mode,
+            'selected_mode': selection.mode,
             'processing_time_ms': elapsed_ms,
             'used_context': used_context,
             'model': {
@@ -815,7 +960,23 @@ async def chat_ask(request: ChatRequest, http_request: Request, x_user: Optional
                 'model': selection.model,
                 'mode': selection.mode,
                 'source': selection.source,
+                'catalog_id': selection.catalog_id,
+                'label': selection.label,
+                'role_tags': list(selection.role_tags or []),
+                'status': selection.status,
             },
+            'prompt_watch': _build_prompt_watch_payload(
+                request=request,
+                selection=selection,
+                selected_speaker_id=selected_speaker_id,
+                selected_speaker_type=speaker_type,
+                parsed_scene_event=parsed_scene_event,
+                retrieval_context=retrieval_context,
+                retrieval_debug=retrieval_debug,
+                result=result,
+                active_character=active_character,
+                scene_state=scene_state if isinstance(scene_state, dict) else {},
+            ),
             'request_id': request_id,
         }
         if request.audience == 'admin':

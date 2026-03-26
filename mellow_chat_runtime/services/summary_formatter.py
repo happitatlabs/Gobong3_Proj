@@ -9,6 +9,8 @@ SEARCHABLE_SECTIONS = {
     "relationships": {"summary", "tone", "boundaries", "shared_memories", "summary_text"},
 }
 
+PROMPT_WATCH_SUMMARY_MAX_CHARS = 200
+
 
 def build_lore_summary(payload: Dict[str, Any]) -> str:
     explicit = str(payload.get("summary_text", "")).strip()
@@ -37,6 +39,25 @@ def build_relationship_summary(payload: Dict[str, Any]) -> str:
         " ".join(_clean_list(payload.get("boundaries", []))),
     ]
     return " | ".join(part for part in parts if part)
+
+
+def build_prompt_watch_summary(section: str, payload: Dict[str, Any]) -> str:
+    if section == "lorebook":
+        summary = build_lore_summary(payload)
+    elif section == "memories":
+        summary = build_memory_summary(payload)
+    elif section == "relationships":
+        summary = build_relationship_summary(payload)
+    else:
+        summary = str(payload.get("summary_text", "") or "").strip()
+    return truncate_summary_text(summary)
+
+
+def truncate_summary_text(value: Any, max_chars: int = PROMPT_WATCH_SUMMARY_MAX_CHARS) -> str:
+    cleaned = str(value or "").strip()
+    if len(cleaned) <= max_chars:
+        return cleaned
+    return cleaned[: max_chars - 3].rstrip() + "..."
 
 
 def searchable_fields_changed(section: str, existing: Dict[str, Any], incoming: Dict[str, Any]) -> bool:

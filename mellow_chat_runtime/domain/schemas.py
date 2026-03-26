@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import re
 from typing import Any, Dict, List, Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class SpeechStyle(BaseModel):
@@ -90,6 +91,33 @@ class DialoguePriority(BaseModel):
     rules: str = ""
 
 
+class ModelCatalogEntry(BaseModel):
+    id: str
+    label: str
+    provider: str
+    model: str
+    default_mode: str
+    role_tags: List[str] = Field(default_factory=list)
+    audiences: List[Literal["user", "admin"]] = Field(default_factory=list)
+    status: Literal["active", "deprecated"] = "active"
+    description: str = ""
+
+    @field_validator("id")
+    @classmethod
+    def validate_id(cls, value: str) -> str:
+        cleaned = value.strip()
+        if not re.fullmatch(r"[a-z0-9_-]+", cleaned):
+            raise ValueError("id must contain only lowercase letters, digits, '_' or '-'")
+        return cleaned
+
+    @field_validator("audiences")
+    @classmethod
+    def validate_audiences(cls, value: List[Literal["user", "admin"]]) -> List[Literal["user", "admin"]]:
+        if not value:
+            raise ValueError("audiences must not be empty")
+        return value
+
+
 class DomainDataBundle(BaseModel):
     personas: Dict[str, Dict[str, str]] = Field(default_factory=dict)
     user_characters: Dict[str, UserCharacter] = Field(default_factory=dict)
@@ -101,5 +129,4 @@ class DomainDataBundle(BaseModel):
     relationships: Dict[str, Dict[str, RelationshipContext]] = Field(default_factory=dict)
     dialogue_priority: Dict[str, DialoguePriority] = Field(default_factory=dict)
     user_profiles: Dict[str, Dict[str, Optional[str]]] = Field(default_factory=dict)
-
-
+    model_catalog: Dict[str, ModelCatalogEntry] = Field(default_factory=dict)

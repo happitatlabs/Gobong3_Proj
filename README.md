@@ -47,6 +47,23 @@
 - `admin_to_user_nn_transition_design.md`
   - `admin -> user_NN` 전환 설계안
 
+## 문서 가이드
+
+어떤 문서를 먼저 봐야 할지 빠르게 판단하려면 아래 기준을 사용하면 됩니다.
+
+- 전체 런타임 구조, 현재 범위, 주요 API를 빠르게 파악하고 싶을 때
+  - `README.md`
+- 백엔드 구조, prompt/retrieval/runtime 설계 배경을 보고 싶을 때
+  - `service_backend_design_for_codex.md`
+- `admin -> user_NN` 확장, ownership, `/me/*` 계층 전환을 검토할 때
+  - `admin_to_user_nn_transition_design.md`
+- Prompt Watch UI를 별도 프론트엔드에서 구현하거나 전달용 스펙이 필요할 때
+  - `prompt_watch_ui_spec.md`
+- Prompt Watch 프론트 렌더를 바로 테스트할 fixture가 필요할 때
+  - `tests/fixtures/prompt_watch/admin_success_detail.json`
+  - `tests/fixtures/prompt_watch/user_success_compact.json`
+  - `tests/fixtures/prompt_watch/user_validation_failure_unavailable.json`
+
 ## 빠른 실행
 
 1. Python 3.10+ 준비

@@ -105,6 +105,70 @@ class RPDebug(BaseModel):
     failure_reasons: List[str] = Field(default_factory=list)
 
 
+class PromptWatchContextItem(BaseModel):
+    id: Optional[str] = None
+    source: Optional[str] = None
+    topic: Optional[str] = None
+    character_id: Optional[str] = None
+    target_id: Optional[str] = None
+    summary_text: str = ""
+
+
+class PromptWatchModelInfo(BaseModel):
+    provider: str
+    model: str
+    mode: str
+    source: Literal["explicit_request", "catalog", "session", "system_default"]
+    catalog_id: Optional[str] = None
+    label: Optional[str] = None
+    role_tags: List[str] = Field(default_factory=list)
+
+
+class PromptWatchGenerationPath(BaseModel):
+    validator_passed: Optional[bool] = None
+    repair_used: bool = False
+    fallback_used: bool = False
+    retry_count: int = 0
+    final_verdict: Literal["pass", "repaired", "fallback", "failed"] = "failed"
+    failure_reason: Optional[str] = None
+
+
+class PromptWatchCompact(BaseModel):
+    active_character_id: Optional[str] = None
+    active_character_name: Optional[str] = None
+    selected_speaker_id: Optional[str] = None
+    selected_speaker_type: Optional[str] = None
+    scene_id: str
+    world_id: str
+    input_mode: Optional[str] = None
+    target_character_hint: Optional[str] = None
+    lore_hit_ids: List[str] = Field(default_factory=list)
+    memory_hit_ids: List[str] = Field(default_factory=list)
+    relationship_hit_ids: List[str] = Field(default_factory=list)
+    model: PromptWatchModelInfo
+    repair_used: bool = False
+    fallback_used: bool = False
+
+
+class PromptWatchSceneContext(BaseModel):
+    goal: str = ""
+    mood: str = ""
+
+
+class PromptWatchAppliedContext(BaseModel):
+    lore: List[PromptWatchContextItem] = Field(default_factory=list)
+    memories: List[PromptWatchContextItem] = Field(default_factory=list)
+    relationships: List[PromptWatchContextItem] = Field(default_factory=list)
+    scene: PromptWatchSceneContext = Field(default_factory=PromptWatchSceneContext)
+
+
+class PromptWatchDetail(PromptWatchCompact):
+    applied_persona_id: Optional[str] = None
+    applied_user_profile_id: Optional[str] = None
+    generation_path: PromptWatchGenerationPath = Field(default_factory=PromptWatchGenerationPath)
+    applied_context: PromptWatchAppliedContext = Field(default_factory=PromptWatchAppliedContext)
+
+
 class ChatAskResponseModel(BaseModel):
     response: str
     session_id: int
@@ -117,10 +181,12 @@ class ChatAskResponseModel(BaseModel):
     processing_time_ms: int
     used_context: Dict[str, Any] = Field(default_factory=dict)
     model: Dict[str, Any] = Field(default_factory=dict)
+    prompt_watch: Optional[PromptWatchCompact] = None
     request_id: str
 
 
 class ChatAskAdminResponseModel(ChatAskResponseModel):
+    prompt_watch: Optional[PromptWatchDetail] = None
     retrieval_debug: Optional[RetrievalDebug] = None
     rp_debug: Optional[RPDebug] = None
 
