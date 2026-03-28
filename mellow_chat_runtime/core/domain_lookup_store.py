@@ -38,6 +38,42 @@ class DomainLookupStore:
     def get_scene_state(self, scene_id: str = "scene_default") -> Dict[str, Any]:
         raise NotImplementedError
 
+    def get_character_state(self, character_id: str) -> Dict[str, Any]:
+        raise NotImplementedError
+
+    def get_session_state(self, session_id: str) -> Dict[str, Any]:
+        raise NotImplementedError
+
+    def get_branch_state(self, branch_id: str = "default") -> Dict[str, Any]:
+        raise NotImplementedError
+
+    def upsert_character_state(self, character_id: str, value: Dict[str, Any]) -> None:
+        raise NotImplementedError
+
+    def upsert_session_state(self, session_id: str, value: Dict[str, Any]) -> None:
+        raise NotImplementedError
+
+    def upsert_branch_state(self, branch_id: str, value: Dict[str, Any]) -> None:
+        raise NotImplementedError
+
+    def get_session_summary(self, session_id: str) -> Dict[str, Any]:
+        raise NotImplementedError
+
+    def list_confirmed_facts(self, session_id: str, limit: int = 10) -> List[Dict[str, Any]]:
+        raise NotImplementedError
+
+    def get_user_note(self, profile_id: str) -> Dict[str, Any]:
+        raise NotImplementedError
+
+    def get_session_note(self, session_id: str) -> Dict[str, Any]:
+        raise NotImplementedError
+
+    def upsert_user_note(self, profile_id: str, value: Dict[str, Any]) -> None:
+        raise NotImplementedError
+
+    def upsert_session_note(self, session_id: str, value: Dict[str, Any]) -> None:
+        raise NotImplementedError
+
     def get_dialogue_priority(self, scene_id: str = "default") -> Dict[str, Any]:
         raise NotImplementedError
 
@@ -83,19 +119,144 @@ class JsonDomainLookupStore(DomainLookupStore):
             "user_profiles": {
                 "user_char_01": {
                     "id": "user_char_01",
-                    "name": "Mellow",
-                    "profile": "UI/UX designer and programmer focused on character immersion.",
-                    "traits": ["design-driven", "continuity-focused"],
+                    "name": "개척자",
+                    "display_name": "개척자",
+                    "role": "trailblazer",
+                    "aliases": ["Trailblazer", "trailblazer"],
+                    "profile": "낯선 상황에 들어온 외부자이자, 세계를 완전히 내면화하지 않은 관찰자.",
+                    "persona": "기본형 개척자. 상황을 이해하고 대응해야 하는 입장에 서며, 관찰과 적응의 균형을 잡는다.",
+                    "selection_hint": "기본형: 관찰과 적응의 균형",
+                    "core_context": [
+                        "낯선 상황에 들어온 외부자",
+                        "상황을 이해하고 대응해야 하는 입장",
+                        "세계관에 완전히 속하지 않은 관찰자적 위치",
+                    ],
+                    "interpretation_style": {
+                        "risk_view": "balanced",
+                        "emotion_weight": "medium",
+                        "decision_speed": "steady",
+                        "response_style": "balanced",
+                    },
+                    "traits": ["outsider-observer", "adaptive", "balanced"],
+                },
+                "user_char_02": {
+                    "id": "user_char_02",
+                    "name": "개척자",
+                    "display_name": "개척자 - 구조형",
+                    "role": "trailblazer",
+                    "aliases": ["Trailblazer", "trailblazer"],
+                    "profile": "낯선 상황을 구조와 문제로 파악하는 외부자.",
+                    "persona": "문제를 구조로 파악하고 빠르게 결정을 내리는 타입",
+                    "selection_hint": "구조형: 해결과 판단 중심",
+                    "core_context": [
+                        "낯선 상황에 들어온 외부자",
+                        "상황을 이해하고 대응해야 하는 입장",
+                        "세계관에 완전히 속하지 않은 관찰자적 위치",
+                    ],
+                    "interpretation_style": {
+                        "risk_view": "structural",
+                        "emotion_weight": "low",
+                        "decision_speed": "fast",
+                        "response_style": "conclusive",
+                    },
+                    "traits": ["structural", "decisive", "solution-first"],
+                },
+                "user_char_03": {
+                    "id": "user_char_03",
+                    "name": "개척자",
+                    "display_name": "개척자 - 경험형",
+                    "role": "trailblazer",
+                    "aliases": ["Trailblazer", "trailblazer"],
+                    "profile": "낯선 상황을 체감과 맥락으로 받아들이는 외부자.",
+                    "persona": "상황을 감정과 맥락으로 받아들이는 타입",
+                    "selection_hint": "경험형: 감정과 맥락 중심",
+                    "core_context": [
+                        "낯선 상황에 들어온 외부자",
+                        "상황을 이해하고 대응해야 하는 입장",
+                        "세계관에 완전히 속하지 않은 관찰자적 위치",
+                    ],
+                    "interpretation_style": {
+                        "risk_view": "felt",
+                        "emotion_weight": "high",
+                        "decision_speed": "deliberate",
+                        "response_style": "descriptive",
+                    },
+                    "traits": ["experiential", "context-sensitive", "deliberate"],
                 }
             },
             "user_characters": {
                 "user_char_01": {
                     "id": "user_char_01",
                     "type": "user",
-                    "name": "Mellow",
-                    "aliases": ["멜로우", "mellow"],
-                    "profile": "UI/UX designer and programmer",
-                    "traits": ["design-driven", "character immersion"],
+                    "name": "개척자",
+                    "display_name": "개척자",
+                    "role": "trailblazer",
+                    "aliases": ["Trailblazer", "trailblazer"],
+                    "profile": "낯선 상황에 들어온 외부자이자, 세계를 완전히 내면화하지 않은 관찰자.",
+                    "persona": "기본형 개척자. 관찰과 적응의 균형을 유지한다.",
+                    "selection_hint": "기본형: 관찰과 적응의 균형",
+                    "core_context": [
+                        "낯선 상황에 들어온 외부자",
+                        "상황을 이해하고 대응해야 하는 입장",
+                        "세계관에 완전히 속하지 않은 관찰자적 위치",
+                    ],
+                    "interpretation_style": {
+                        "risk_view": "balanced",
+                        "emotion_weight": "medium",
+                        "decision_speed": "steady",
+                        "response_style": "balanced",
+                    },
+                    "traits": ["outsider-observer", "adaptive", "balanced"],
+                    "relationship_keys": ["crew_main"],
+                    "is_major": True,
+                },
+                "user_char_02": {
+                    "id": "user_char_02",
+                    "type": "user",
+                    "name": "개척자",
+                    "display_name": "개척자 - 구조형",
+                    "role": "trailblazer",
+                    "aliases": ["Trailblazer", "trailblazer"],
+                    "profile": "낯선 상황을 구조와 문제로 파악하는 외부자.",
+                    "persona": "문제를 구조로 파악하고 빠르게 결정을 내리는 타입",
+                    "selection_hint": "구조형: 해결과 판단 중심",
+                    "core_context": [
+                        "낯선 상황에 들어온 외부자",
+                        "상황을 이해하고 대응해야 하는 입장",
+                        "세계관에 완전히 속하지 않은 관찰자적 위치",
+                    ],
+                    "interpretation_style": {
+                        "risk_view": "structural",
+                        "emotion_weight": "low",
+                        "decision_speed": "fast",
+                        "response_style": "conclusive",
+                    },
+                    "traits": ["structural", "decisive", "solution-first"],
+                    "relationship_keys": ["crew_main"],
+                    "is_major": True,
+                },
+                "user_char_03": {
+                    "id": "user_char_03",
+                    "type": "user",
+                    "name": "개척자",
+                    "display_name": "개척자 - 경험형",
+                    "role": "trailblazer",
+                    "aliases": ["Trailblazer", "trailblazer"],
+                    "profile": "낯선 상황을 체감과 맥락으로 받아들이는 외부자.",
+                    "persona": "상황을 감정과 맥락으로 받아들이는 타입",
+                    "selection_hint": "경험형: 감정과 맥락 중심",
+                    "core_context": [
+                        "낯선 상황에 들어온 외부자",
+                        "상황을 이해하고 대응해야 하는 입장",
+                        "세계관에 완전히 속하지 않은 관찰자적 위치",
+                    ],
+                    "interpretation_style": {
+                        "risk_view": "felt",
+                        "emotion_weight": "high",
+                        "decision_speed": "deliberate",
+                        "response_style": "descriptive",
+                    },
+                    "traits": ["experiential", "context-sensitive", "deliberate"],
                     "relationship_keys": ["crew_main"],
                     "is_major": True,
                 }
@@ -138,26 +299,54 @@ class JsonDomainLookupStore(DomainLookupStore):
                 "bot_char_01": {
                     "user_char_01": {
                         "target_id": "user_char_01",
-                        "summary": "Treat Mellow as a trusted collaborator whose judgment matters.",
-                        "tone": "warmly strategic",
-                        "boundaries": ["Do not humiliate the user", "Do not dismiss prior agreements"],
-                        "shared_memories": ["They stabilized a tense station negotiation together."],
+                        "summary": "기본형 개척자를 관찰과 행동의 균형을 잡는 신뢰할 수 있는 협력자로 대한다.",
+                        "tone": "따뜻하고 전략적",
+                        "boundaries": ["사용자를 모욕하지 않는다", "이전 합의를 무시하지 않는다"],
+                        "shared_memories": ["긴장된 정거장 협상을 함께 안정시켰다."],
+                    },
+                    "user_char_02": {
+                        "target_id": "user_char_02",
+                        "summary": "구조적 개척자를 빠른 위험 판단자로 보고, 명확한 트레이드오프와 결단력 있는 선택지로 응한다.",
+                        "tone": "전략적이고 간결함",
+                        "boundaries": ["속도를 선택한 사용자를 깔보지 않는다", "핵심 리스크 변수를 숨기지 않는다"],
+                        "shared_memories": ["한번은 레버리지 포인트를 먼저 파악해 정체된 계약 검토를 돌파했다."],
+                    },
+                    "user_char_03": {
+                        "target_id": "user_char_03",
+                        "summary": "체험형 개척자를 분위기와 압박에 민감한 상대로 보고, 맥락과 감정적 질감으로 응한다.",
+                        "tone": "따뜻하고 통찰력 있음",
+                        "boundaries": ["망설임을 약점으로 치부하지 않는다", "분위기를 순수한 숫자로 평면화하지 않는다"],
+                        "shared_memories": ["한번은 협상이 결렬되기 전에 분위기가 변하는 것을 먼저 알아챘다."],
                     },
                     "bot_char_02": {
                         "target_id": "bot_char_02",
-                        "summary": "Respect Sunday as a careful ally with formal expectations.",
-                        "tone": "polite but competitive",
-                        "boundaries": ["Avoid open mockery in shared scenes"],
-                        "shared_memories": ["They coordinated during a Penacony diplomatic review."],
+                        "summary": "선데이를 격식 있는 기대를 가진 신중한 동맹으로 존중한다.",
+                        "tone": "예의 바르지만 경쟁적",
+                        "boundaries": ["공유 장면에서 공개적 조롱을 피한다"],
+                        "shared_memories": ["페나코니 외교 검토 중에 협력했다."],
                     },
                 },
                 "bot_char_02": {
                     "user_char_01": {
                         "target_id": "user_char_01",
-                        "summary": "Treat Mellow as capable and sincerity-driven.",
-                        "tone": "measured respect",
-                        "boundaries": ["Avoid manipulative baiting"],
-                        "shared_memories": ["They discussed public duty after the assembly hall oath."],
+                        "summary": "기본형 개척자를 유능하고, 관찰력 있으며, 원칙과 적응을 모두 고려할 의지가 있는 상대로 대한다.",
+                        "tone": "절제된 존중",
+                        "boundaries": ["조종적인 미끼를 피한다"],
+                        "shared_memories": ["의회장 서약 후 공적 의무에 대해 논의했다."],
+                    },
+                    "user_char_02": {
+                        "target_id": "user_char_02",
+                        "summary": "구조적 개척자를 문제를 책임, 순서, 결정 기준으로 축소하길 원하는 상대로 대한다.",
+                        "tone": "절제되고 정확함",
+                        "boundaries": ["모호한 안심으로 책임을 흐리지 않는다"],
+                        "shared_memories": ["한번은 의무와 수용 가능한 위험을 재배열해 실패하던 계획을 재건했다."],
+                    },
+                    "user_char_03": {
+                        "target_id": "user_char_03",
+                        "summary": "체험형 개척자를 계획을 수용하기 전에 진심, 압박, 결과를 읽는 상대로 대한다.",
+                        "tone": "차분하게 공감적",
+                        "boundaries": ["감정적 신중함을 비효율로 프레임하지 않는다"],
+                        "shared_memories": ["한번은 의식 후에 남아 책임이 어떻게 정의되는지가 아니라 어떻게 느껴지는지 논의했다."],
                     }
                 },
             },
@@ -166,41 +355,93 @@ class JsonDomainLookupStore(DomainLookupStore):
                     "id": "lore_001",
                     "topic": "Interastral Peace Corporation",
                     "aliases": ["IPC", "스타피스 컴퍼니"],
-                    "content": "A galaxy-scale organization handling finance and contracts.",
+                    "content": "은하 단위의 금융과 계약을 관리하는 초거대 조직이다.",
                     "priority": 10,
                 },
                 "lore_002": {
                     "id": "lore_002",
                     "topic": "Stonehearts",
                     "aliases": ["스톤하트", "Ten Stonehearts"],
-                    "content": "Senior strategic figures aligned with high-value IPC operations.",
+                    "content": "고가치 IPC 작전에 맞물려 움직이는 상위 전략 인물들이다.",
                     "priority": 8,
                 },
                 "lore_003": {
                     "id": "lore_003",
                     "topic": "Astral Lounge Protocol",
                     "aliases": ["라운지 규약", "Lounge protocol"],
-                    "content": "Negotiations in shared lounges prioritize calm tone and turn-taking.",
+                    "content": "공용 라운지에서의 협상은 차분한 어조와 발화 순서를 우선한다.",
                     "priority": 6,
                 },
             },
             "world_state": {
                 "default": {
                     "id": "default",
-                    "location": "Astral lounge deck",
-                    "time": "Evening shift",
-                    "state": "Stable",
-                    "facts": ["Travel routes are open", "No immediate external crisis"],
+                    "location": "아스트랄 라운지 데크",
+                    "time": "야간 교대 시간",
+                    "state": "안정",
+                    "facts": ["이동 경로는 현재 열려 있다", "즉각적인 외부 위기는 없다"],
                 }
             },
+            "character_state": {
+                "user_char_01": {
+                    "character_id": "user_char_01",
+                    "emotion": "침착함",
+                    "location": "아스트랄 라운지 데크",
+                    "outfit": "기본 개척자 복장",
+                    "scene_flags": {"observing": True},
+                    "relationship_delta": {"bot_char_01": 0.0, "bot_char_02": 0.0},
+                    "status_notes": ["상황을 먼저 읽고 움직이려 한다."],
+                },
+                "bot_char_01": {
+                    "character_id": "bot_char_01",
+                    "emotion": "자신감",
+                    "location": "아스트랄 라운지 데크",
+                    "outfit": "IPC 정장 차림",
+                    "scene_flags": {"negotiation_mode": True},
+                    "relationship_delta": {"user_char_01": 0.0},
+                    "status_notes": ["판을 주도하려 하지만 무리하게 압박하지는 않는다."],
+                },
+                "bot_char_02": {
+                    "character_id": "bot_char_02",
+                    "emotion": "차분함",
+                    "location": "아스트랄 라운지 데크",
+                    "outfit": "의전용 정장",
+                    "scene_flags": {"measured_response": True},
+                    "relationship_delta": {"user_char_01": 0.0},
+                    "status_notes": ["감정보다 책임과 균형을 먼저 본다."],
+                },
+            },
+            "session_state": {
+                "default": {
+                    "session_id": "default",
+                    "branch_id": "default",
+                    "active_location": "아스트랄 라운지 데크",
+                    "active_phase": "도입부",
+                    "scene_flags": {"intro_active": True},
+                    "status_notes": ["기본 세션 상태"],
+                }
+            },
+            "branch_state": {
+                "default": {
+                    "branch_id": "default",
+                    "route_flags": {"main_route": True},
+                    "hidden_facts_revealed": [],
+                    "active_objectives": ["대화 흐름 안정화"],
+                }
+            },
+            "turn_summary": {},
+            "session_summary": {},
+            "confirmed_facts": {},
+            "user_notes": {},
+            "session_notes": {},
             "scene_state": {
                 "scene_default": {
                     "id": "scene_default",
-                    "location": "Lounge",
-                    "time": "Evening",
+                    "location": "라운지",
+                    "time": "저녁",
                     "participants": ["user_char_01", "bot_char_01", "bot_char_02"],
-                    "goal": "Synchronize character plans",
-                    "mood": "calm",
+                    "goal": "인물들의 의도를 조율한다",
+                    "mood": "차분함",
                     "rules": [
                         {"key": "include_speakers", "value": ["bot_char_01", "bot_char_02"]},
                         {"key": "exclude_speakers", "value": []},
@@ -210,18 +451,37 @@ class JsonDomainLookupStore(DomainLookupStore):
             "memories": {
                 "user_char_01": {
                     "character_id": "user_char_01",
-                    "important_memories": ["Past project incident", "Recent trust shift"],
+                    "important_memories": [
+                        "낯선 환경에서는 먼저 장면을 읽고 균형 있게 대응하려 한다.",
+                        "관찰과 적응을 함께 유지하는 기본형 개척자 프레임을 가진다.",
+                    ],
+                    "possessions": ["Card case", "Notebook"],
+                },
+                "user_char_02": {
+                    "character_id": "user_char_02",
+                    "important_memories": [
+                        "상황을 구조와 변수로 나눠 빠르게 판단하는 구조형 개척자 프레임을 가진다.",
+                        "리스크를 계산 가능한 요소로 보고 결론을 앞에 두는 편이다.",
+                    ],
+                    "possessions": ["Card case", "Notebook"],
+                },
+                "user_char_03": {
+                    "character_id": "user_char_03",
+                    "important_memories": [
+                        "상황을 체감과 맥락으로 받아들이는 경험형 개척자 프레임을 가진다.",
+                        "감정과 분위기를 짚은 뒤 신중하게 결론에 도달하는 편이다.",
+                    ],
                     "possessions": ["Card case", "Notebook"],
                 },
                 "bot_char_01": {
                     "character_id": "bot_char_01",
-                    "important_memories": ["Debt negotiation at station nine"],
-                    "possessions": ["Gemstone token"],
+                    "important_memories": ["제9 정거장에서의 부채 협상"],
+                    "possessions": ["보석 토큰"],
                 },
                 "bot_char_02": {
                     "character_id": "bot_char_02",
-                    "important_memories": ["Public oath in Penacony assembly hall"],
-                    "possessions": ["Ceremonial notebook"],
+                    "important_memories": ["페나코니 의회장에서의 공개 서약"],
+                    "possessions": ["의전용 수첩"],
                 },
             },
             "dialogue_priority": {
@@ -236,47 +496,47 @@ class JsonDomainLookupStore(DomainLookupStore):
             "model_catalog": {
                 "rp_stable_main": {
                     "id": "rp_stable_main",
-                    "label": "RP Stable Main",
+                    "label": "RP 안정 메인",
                     "provider": "ollama",
                     "model": "qwen3.5:9b",
                     "default_mode": "fast",
                     "role_tags": ["rp_stable", "canon"],
                     "audiences": ["user", "admin"],
                     "status": "active",
-                    "description": "Default stable roleplay generation model.",
+                    "description": "기본 안정형 롤플레잉 생성 모델.",
                 },
                 "emotion_focus_main": {
                     "id": "emotion_focus_main",
-                    "label": "Emotion Focus",
+                    "label": "감정 집중",
                     "provider": "ollama",
                     "model": "qwen3.5:9b",
                     "default_mode": "thinking",
                     "role_tags": ["emotion"],
                     "audiences": ["user", "admin"],
                     "status": "active",
-                    "description": "Use when emotional nuance matters more than speed.",
+                    "description": "속도보다 감정 뉘앙스가 중요할 때 사용한다.",
                 },
                 "qa_repro_admin": {
                     "id": "qa_repro_admin",
-                    "label": "QA Repro",
+                    "label": "QA 재현",
                     "provider": "ollama",
                     "model": "qwen3.5:9b",
                     "default_mode": "research",
                     "role_tags": ["qa_repro", "low_cost_test"],
                     "audiences": ["admin"],
                     "status": "active",
-                    "description": "Use for admin reproduction and low-cost QA runs.",
+                    "description": "관리자 재현과 저비용 QA 실행에 사용한다.",
                 },
                 "repair_admin": {
                     "id": "repair_admin",
-                    "label": "Repair Assist",
+                    "label": "수정 보조",
                     "provider": "ollama",
                     "model": "qwen3.5:9b",
                     "default_mode": "thinking",
                     "role_tags": ["repair", "canon"],
                     "audiences": ["admin"],
                     "status": "deprecated",
-                    "description": "Legacy repair-oriented profile kept for reproduction.",
+                    "description": "재현용으로 남겨둔 구형 수정 지향 프로필.",
                 },
             },
         }
@@ -353,6 +613,165 @@ class JsonDomainLookupStore(DomainLookupStore):
         section = self._data.get("scene_state", {})
         fallback = section.get("scene_default", {})
         return dict(section.get(scene_id, fallback))
+
+    def get_character_state(self, character_id: str) -> Dict[str, Any]:
+        cleaned_character_id = str(character_id or "").strip()
+        section = self._data.get("character_state", {})
+        if isinstance(section, dict):
+            value = section.get(cleaned_character_id)
+            if isinstance(value, dict):
+                return dict(value)
+        return {
+            "character_id": cleaned_character_id,
+            "emotion": "neutral",
+            "location": "",
+            "outfit": "",
+            "scene_flags": {},
+            "relationship_delta": {},
+            "status_notes": [],
+        }
+
+    def get_session_state(self, session_id: str) -> Dict[str, Any]:
+        cleaned_session_id = str(session_id or "").strip() or "default"
+        section = self._data.get("session_state", {})
+        if isinstance(section, dict):
+            value = section.get(cleaned_session_id)
+            if isinstance(value, dict):
+                return dict(value)
+            fallback = section.get("default")
+            if isinstance(fallback, dict):
+                merged = dict(fallback)
+                merged["session_id"] = cleaned_session_id
+                return merged
+        return {
+            "session_id": cleaned_session_id,
+            "branch_id": "default",
+            "active_location": "",
+            "active_phase": "",
+            "scene_flags": {},
+            "status_notes": [],
+        }
+
+    def get_branch_state(self, branch_id: str = "default") -> Dict[str, Any]:
+        cleaned_branch_id = str(branch_id or "").strip() or "default"
+        section = self._data.get("branch_state", {})
+        if isinstance(section, dict):
+            value = section.get(cleaned_branch_id)
+            if isinstance(value, dict):
+                return dict(value)
+            fallback = section.get("default")
+            if isinstance(fallback, dict):
+                merged = dict(fallback)
+                merged["branch_id"] = cleaned_branch_id
+                return merged
+        return {
+            "branch_id": cleaned_branch_id,
+            "route_flags": {},
+            "hidden_facts_revealed": [],
+            "active_objectives": [],
+        }
+
+    def get_session_summary(self, session_id: str) -> Dict[str, Any]:
+        cleaned_session_id = str(session_id or "").strip() or "default"
+        item = self.get_section_item("session_summary", cleaned_session_id)
+        if item:
+            return item
+        return {
+            "session_id": cleaned_session_id,
+            "turn_count": 0,
+            "summary": "",
+            "recent_turn_ids": [],
+            "summary_text": "",
+        }
+
+    def list_confirmed_facts(self, session_id: str, limit: int = 10) -> List[Dict[str, Any]]:
+        cleaned_session_id = str(session_id or "").strip() or "default"
+        items = [
+            item for item in self.list_section("confirmed_facts").values()
+            if str(item.get("session_id") or "").strip() == cleaned_session_id
+        ]
+        items.sort(key=lambda item: (-float(item.get("confidence") or 0.0), str(item.get("id") or "")))
+        if limit > 0:
+            items = items[:limit]
+        return items
+
+    def upsert_character_state(self, character_id: str, value: Dict[str, Any]) -> None:
+        cleaned_character_id = str(character_id or "").strip()
+        payload = dict(value or {})
+        payload["character_id"] = str(payload.get("character_id") or cleaned_character_id).strip() or cleaned_character_id
+        payload.setdefault("emotion", "neutral")
+        payload.setdefault("location", "")
+        payload.setdefault("outfit", "")
+        payload.setdefault("scene_flags", {})
+        payload.setdefault("relationship_delta", {})
+        payload.setdefault("status_notes", [])
+        self.upsert("character_state", payload["character_id"], payload)
+
+    def upsert_session_state(self, session_id: str, value: Dict[str, Any]) -> None:
+        cleaned_session_id = str(session_id or "").strip() or "default"
+        payload = dict(value or {})
+        payload["session_id"] = str(payload.get("session_id") or cleaned_session_id).strip() or cleaned_session_id
+        payload.setdefault("branch_id", "default")
+        payload.setdefault("active_location", "")
+        payload.setdefault("active_phase", "")
+        payload.setdefault("scene_flags", {})
+        payload.setdefault("status_notes", [])
+        self.upsert("session_state", payload["session_id"], payload)
+
+    def upsert_branch_state(self, branch_id: str, value: Dict[str, Any]) -> None:
+        cleaned_branch_id = str(branch_id or "").strip() or "default"
+        payload = dict(value or {})
+        payload["branch_id"] = str(payload.get("branch_id") or cleaned_branch_id).strip() or cleaned_branch_id
+        payload.setdefault("route_flags", {})
+        payload.setdefault("hidden_facts_revealed", [])
+        payload.setdefault("active_objectives", [])
+        self.upsert("branch_state", payload["branch_id"], payload)
+
+    def get_user_note(self, profile_id: str) -> Dict[str, Any]:
+        cleaned_profile_id = str(profile_id or "").strip() or "default"
+        item = self.get_section_item("user_notes", cleaned_profile_id)
+        if item:
+            return item
+        return {
+            "profile_id": cleaned_profile_id,
+            "note": "",
+            "hard_constraints": [],
+            "preferred_dynamic": [],
+            "relationship_expectation": "",
+        }
+
+    def get_session_note(self, session_id: str) -> Dict[str, Any]:
+        cleaned_session_id = str(session_id or "").strip() or "default"
+        item = self.get_section_item("session_notes", cleaned_session_id)
+        if item:
+            return item
+        return {
+            "session_id": cleaned_session_id,
+            "note": "",
+            "hard_constraints": [],
+            "preferred_dynamic": [],
+            "relationship_expectation": "",
+        }
+
+    def upsert_user_note(self, profile_id: str, value: Dict[str, Any]) -> None:
+        cleaned_profile_id = str(profile_id or "").strip() or "default"
+        payload = dict(value or {})
+        payload["profile_id"] = str(payload.get("profile_id") or cleaned_profile_id).strip() or cleaned_profile_id
+        payload.setdefault("note", "")
+        payload.setdefault("hard_constraints", [])
+        payload.setdefault("preferred_dynamic", [])
+        payload.setdefault("relationship_expectation", "")
+        self.upsert("user_notes", payload["profile_id"], payload)
+
+    def upsert_session_note(self, session_id: str, value: Dict[str, Any]) -> None:
+        cleaned_session_id = str(session_id or "").strip() or "default"
+        payload = dict(value or {})
+        payload["session_id"] = str(payload.get("session_id") or cleaned_session_id).strip() or cleaned_session_id
+        payload.setdefault("note", "")
+        payload.setdefault("hard_constraints", [])
+        payload.setdefault("preferred_dynamic", [])
+        payload.setdefault("relationship_expectation", "")
+        self.upsert("session_notes", payload["session_id"], payload)
 
     def get_dialogue_priority(self, scene_id: str = "default") -> Dict[str, Any]:
         return dict(self._data.get("dialogue_priority", {}).get(scene_id, self._data["dialogue_priority"]["default"]))
@@ -460,6 +879,42 @@ class VectorDomainLookupStore(DomainLookupStore):
 
     def get_scene_state(self, scene_id: str = "scene_default") -> Dict[str, Any]:
         return self._fallback.get_scene_state(scene_id)
+
+    def get_character_state(self, character_id: str) -> Dict[str, Any]:
+        return self._fallback.get_character_state(character_id)
+
+    def get_session_state(self, session_id: str) -> Dict[str, Any]:
+        return self._fallback.get_session_state(session_id)
+
+    def get_branch_state(self, branch_id: str = "default") -> Dict[str, Any]:
+        return self._fallback.get_branch_state(branch_id)
+
+    def upsert_character_state(self, character_id: str, value: Dict[str, Any]) -> None:
+        self._fallback.upsert_character_state(character_id=character_id, value=value)
+
+    def upsert_session_state(self, session_id: str, value: Dict[str, Any]) -> None:
+        self._fallback.upsert_session_state(session_id=session_id, value=value)
+
+    def upsert_branch_state(self, branch_id: str, value: Dict[str, Any]) -> None:
+        self._fallback.upsert_branch_state(branch_id=branch_id, value=value)
+
+    def get_session_summary(self, session_id: str) -> Dict[str, Any]:
+        return self._fallback.get_session_summary(session_id)
+
+    def list_confirmed_facts(self, session_id: str, limit: int = 10) -> List[Dict[str, Any]]:
+        return self._fallback.list_confirmed_facts(session_id, limit=limit)
+
+    def get_user_note(self, profile_id: str) -> Dict[str, Any]:
+        return self._fallback.get_user_note(profile_id)
+
+    def get_session_note(self, session_id: str) -> Dict[str, Any]:
+        return self._fallback.get_session_note(session_id)
+
+    def upsert_user_note(self, profile_id: str, value: Dict[str, Any]) -> None:
+        self._fallback.upsert_user_note(profile_id=profile_id, value=value)
+
+    def upsert_session_note(self, session_id: str, value: Dict[str, Any]) -> None:
+        self._fallback.upsert_session_note(session_id=session_id, value=value)
 
     def get_dialogue_priority(self, scene_id: str = "default") -> Dict[str, Any]:
         return self._fallback.get_dialogue_priority(scene_id)

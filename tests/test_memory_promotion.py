@@ -356,8 +356,8 @@ def test_prompt_includes_relationship_context_and_priority_blocks(tmp_path: Path
     user_prompt = llm.chat_calls[-1][1]["content"]
     assert "우선순위:" in system_prompt
     assert "관계 맥락:" in system_prompt
-    assert "Treat Mellow as a trusted collaborator whose judgment matters." in system_prompt
-    assert "warmly strategic" in system_prompt
+    assert "기본형 개척자를 관찰과 행동의 균형을 잡는 신뢰할 수 있는 협력자로 대한다." in system_prompt
+    assert "따뜻하고 전략적" in system_prompt
     assert "출력 제약:" in user_prompt
     assert "우선 맥락:" in user_prompt
     assert "장면 우선:" in user_prompt
@@ -388,7 +388,7 @@ def test_prompt_uses_long_term_memory_in_generation_context(tmp_path: Path) -> N
 
     assert response.status_code == 200
     user_prompt = llm.chat_calls[-1][1]["content"]
-    assert "Debt negotiation at station nine" in user_prompt
+    assert "제9 정거장에서의 부채 협상" in user_prompt
 
 
 def test_admin_character_relationship_and_memory_tools(tmp_path: Path) -> None:
@@ -435,15 +435,15 @@ def test_admin_character_relationship_and_memory_tools(tmp_path: Path) -> None:
             "source_id": "bot_char_99",
             "target_id": "user_char_01",
             "data": {
-                "summary": "Treat Mellow as a reliable operator.",
-                "tone": "direct respect",
-                "boundaries": ["Do not patronize the user"],
-                "shared_memories": ["Joint inspection on the lounge deck"],
+                "summary": "멜로우를 신뢰할 수 있는 실무형 협력자로 대한다.",
+                "tone": "직접적 존중",
+                "boundaries": ["사용자를 깔보지 않는다"],
+                "shared_memories": ["라운지 데크에서 함께 점검을 진행했다"],
             },
         },
     )
     assert relationship_response.status_code == 200
-    assert relationship_response.json()["items"][0]["tone"] == "direct respect"
+    assert relationship_response.json()["items"][0]["tone"] == "직접적 존중"
 
     lore_response = client.put(
         "/admin/lore/lore_999",
@@ -787,7 +787,7 @@ def test_chat_ask_filters_contaminated_memory_from_prompt(tmp_path: Path) -> Non
 
     assert response.status_code == 200
     user_prompt = llm.chat_calls[-1][1]['content']
-    assert 'Debt negotiation at station nine' in user_prompt
+    assert '제9 정거장에서의 부채 협상' in user_prompt
     assert '<|im_start|>' not in user_prompt
     assert 'prompt in Turn' not in user_prompt
     assert "I'll focus on" not in user_prompt
