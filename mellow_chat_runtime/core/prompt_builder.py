@@ -5,12 +5,14 @@ import re
 from typing import Any, Dict, List, Optional
 
 from mellow_chat_runtime.core.rp_parser import ParsedSceneEvent
+from mellow_chat_runtime.services.branch_visibility_service import BranchVisibilityService
 
 
 def build_system_prompt(
     persona: Dict[str, Any],
     dialogue_priority: Dict[str, Any],
     active_character: Optional[Dict[str, Any]] = None,
+    user_profile: Optional[Dict[str, Any]] = None,
     relationships: Optional[List[Dict[str, Any]]] = None,
 ) -> str:
     persona_desc = persona.get('description', '')
@@ -44,6 +46,8 @@ def build_system_prompt(
     alias_text = ', '.join(str(alias).strip() for alias in aliases if str(alias).strip()) or '(없음)'
     style_anchor = str(active_character.get('style_anchor') or '').strip()
     franchise_anchor = str(active_character.get('franchise_anchor') or '').strip()
+    user_interpretation_block = _build_user_interpretation_block(user_profile or {})
+    response_tuning_lines = _build_user_response_tuning_lines(user_profile or {})
     return (
         f'당신은 {character_name}이다.\n\n'
         '역할:\n'
@@ -71,9 +75,10 @@ def build_system_prompt(
         '- 사용자 입력이 한국어이면 서술과 대사를 모두 한국어로 유지하고 영어로 전환하지 않는다\n\n'
         '우선순위:\n'
         '1. 현재 장면 규칙과 장면 목표\n'
-        '2. 세계 상태 제약과 연속성\n'
-        '3. 캐릭터 기억과 관계 맥락\n'
-        '4. 로어북 사실과 용어\n\n'
+        '2. 동적 상태와 장면 연속성\n'
+        '3. 세계 상태 제약과 연속성\n'
+        '4. 캐릭터 기억과 관계 맥락\n'
+        '5. 로어북 사실과 용어\n\n'
         '금지 요소:\n'
         f'{forbidden_text}\n\n'
         '정체성 맥락:\n'
@@ -85,6 +90,11 @@ def build_system_prompt(
         f'대화 정책: {priority_rules}\n\n'
         '관계 맥락:\n'
         f'{relationship_block}\n\n'
+        '상대 해석 프레임:\n'
+        f'{user_interpretation_block}\n\n'
+        '상대 해석 프레임 대응 규칙:\n'
+        + '\n'.join(f'- {line}' for line in response_tuning_lines)
+        + '\n\n'
         '출력 제한:\n'
         '- 사용자에게 보여줄 최종 RP 답변만 출력한다\n'
         '- 답변 설명, 지시문 언급, 분석, 계획, 체크리스트, 역할 태그를 쓰지 않는다\n'
@@ -104,6 +114,13 @@ def build_user_prompt(
     memories: Dict[str, Any],
     world_state: Dict[str, Any],
     scene_state: Dict[str, Any],
+    character_state: Dict[str, Any],
+    session_state: Dict[str, Any],
+    branch_state: Dict[str, Any],
+    session_summary: Dict[str, Any],
+    confirmed_facts: List[Dict[str, Any]],
+    user_note: Dict[str, Any],
+    session_note: Dict[str, Any],
     relationships: Optional[List[Dict[str, Any]]] = None,
     history: Optional[List[Dict[str, str]]] = None,
     scene_event: Optional[ParsedSceneEvent] = None,
@@ -115,6 +132,22 @@ def build_user_prompt(
     language_label = '한국어' if primary_language == 'ko' else '영어' if primary_language == 'en' else '입력과 동일한 언어'
     relationships = relationships or []
     retrieval_context = retrieval_context or {}
+    user_name = str(user_profile.get('name') or '').strip()
+    user_display_name = str(user_profile.get('display_name') or user_name or '').strip()
+    user_aliases = user_profile.get('aliases', []) if isinstance(user_profile.get('aliases'), list) else []
+    cleaned_user_aliases = [str(item).strip() for item in user_aliases if str(item).strip()]
+    user_anchor_text = ', '.join([item for item in [user_name, *cleaned_user_aliases] if item]) or '(없음)'
+    user_interpretation_block = _build_user_interpretation_block(user_profile)
+    response_tuning_lines = _build_user_response_tuning_lines(user_profile)
+    dynamic_state = _build_dynamic_state_block(
+        character_state=character_state if isinstance(character_state, dict) else {},
+        session_state=session_state if isinstance(session_state, dict) else {},
+        branch_state=branch_state if isinstance(branch_state, dict) else {},
+    )
+    branch_context = _build_branch_context_block(
+        branch_state=branch_state if isinstance(branch_state, dict) else {},
+        session_state=session_state if isinstance(session_state, dict) else {},
+    )
     prioritized_memories = memories.get('important_memories', []) if isinstance(memories, dict) else []
     if not isinstance(prioritized_memories, list):
         prioritized_memories = []
@@ -123,6 +156,12 @@ def build_user_prompt(
     if not isinstance(world_facts, list):
         world_facts = []
     world_facts = [str(item).strip() for item in world_facts if str(item).strip()][:5]
+    session_summary = session_summary if isinstance(session_summary, dict) else {}
+    confirmed_facts = confirmed_facts if isinstance(confirmed_facts, list) else []
+    user_note_block = _build_note_block(user_note if isinstance(user_note, dict) else {}, id_key='profile_id')
+    session_note_block = _build_note_block(session_note if isinstance(session_note, dict) else {}, id_key='session_id')
+    confirmed_fact_lines = [str(item.get('fact') or item.get('summary_text') or '').strip() for item in confirmed_facts if isinstance(item, dict) and str(item.get('fact') or item.get('summary_text') or '').strip()][:5]
+    session_summary_text = str(session_summary.get('summary_text') or session_summary.get('summary') or '').strip()
     relationship_summary = []
     for item in relationships[:2]:
         summary = str(item.get('summary', '')).strip()
@@ -184,11 +223,19 @@ def build_user_prompt(
         f'- 응답 주 언어: {language_label}\n'
         '- 사용자 입력의 주 언어와 같은 언어를 유지한다\n'
         '- 한국어 입력이면 서술과 대사를 모두 한국어로 유지하고 영어로 전환하지 않는다\n'
+        f'- 사용자 표기 앵커는 {user_anchor_text}만 사용하고, 이름을 임의로 다른 표기로 바꾸지 않는다\n'
+        f'- 현재 상대는 {user_display_name or user_name or "개척자"} 해석 프레임을 가진다\n'
         '- message.content에는 최종 RP 답변만 넣고 분석/계획/생각을 쓰지 않는다\n'
         '- 빈 응답을 반환하지 않는다\n'
         f'- 서술은 선택된 캐릭터를 3인칭으로 묘사한다\n\n'
         '우선 맥락:\n'
+        f'동적 상태: {json.dumps(dynamic_state, ensure_ascii=False)}\n'
         f'장면 우선: {json.dumps(scene_state, ensure_ascii=False)}\n'
+        f'확정 사실: {json.dumps(confirmed_fact_lines, ensure_ascii=False)}\n'
+        f'세션 요약: {json.dumps({"summary": session_summary_text, "turn_count": session_summary.get("turn_count", 0)}, ensure_ascii=False)}\n'
+        f'브랜치 맥락: {json.dumps(branch_context, ensure_ascii=False)}\n'
+        f'유저 노트: {json.dumps(user_note_block, ensure_ascii=False)}\n'
+        f'세션 노트: {json.dumps(session_note_block, ensure_ascii=False)}\n'
         f'세계 제약: {json.dumps({"facts": world_facts, "location": world_state.get("location"), "time": world_state.get("time"), "state": world_state.get("state")}, ensure_ascii=False)}\n'
         f'캐릭터 기억: {json.dumps({"important_memories": prioritized_memories, "possessions": memories.get("possessions", [])}, ensure_ascii=False)}\n'
         f'관계 맥락: {json.dumps(relationship_summary, ensure_ascii=False)}\n'
@@ -198,15 +245,154 @@ def build_user_prompt(
         parts.append(
             '검색 보조 맥락 우선순위:\n'
             '1. scene rules / goal\n'
-            '2. world continuity\n'
-            '3. active speaker constraints\n'
-            '4. structured relationship constraints\n'
+            '2. dynamic state\n'
+            '3. world continuity\n'
+            '4. active speaker constraints\n'
+            '5. structured relationship constraints\n'
             + '\n'.join(retrieval_lines)
             + '\n8. recent history'
         )
+    parts.append('사용자 해석 프레임:\n' + user_interpretation_block)
+    parts.append('응답 조율 규칙:\n' + '\n'.join(f'- {line}' for line in response_tuning_lines))
     parts.append('사용자 프로필:\n' + json.dumps(user_profile, ensure_ascii=False))
     parts.append('현재 사용자 메시지:\n' + user_text)
     return '\n\n'.join(parts)
+
+
+def _build_user_interpretation_block(user_profile: Dict[str, Any]) -> str:
+    display_name = str(user_profile.get('display_name') or user_profile.get('name') or '개척자').strip()
+    role = str(user_profile.get('role') or 'trailblazer').strip() or 'trailblazer'
+    persona = str(user_profile.get('persona') or user_profile.get('profile') or '').strip()
+    core_context = user_profile.get('core_context', []) if isinstance(user_profile.get('core_context'), list) else []
+    cleaned_core_context = [str(item).strip() for item in core_context if str(item).strip()]
+    interpretation_style = user_profile.get('interpretation_style', {}) if isinstance(user_profile.get('interpretation_style'), dict) else {}
+    risk_view = str(interpretation_style.get('risk_view') or 'balanced').strip()
+    emotion_weight = str(interpretation_style.get('emotion_weight') or 'medium').strip()
+    decision_speed = str(interpretation_style.get('decision_speed') or 'steady').strip()
+    response_style = str(interpretation_style.get('response_style') or 'balanced').strip()
+    style_guidance = _interpretation_style_guidance(
+        risk_view=risk_view,
+        emotion_weight=emotion_weight,
+        decision_speed=decision_speed,
+        response_style=response_style,
+    )
+    core_text = '; '.join(cleaned_core_context) if cleaned_core_context else '낯선 상황에 들어온 외부자, 관찰자적 위치'
+    return (
+        f'- archetype: {display_name} ({role})\n'
+        f'- core: {core_text}\n'
+        f'- persona: {persona or "상황을 이해하고 대응해야 하는 개척자"}\n'
+        f'- interpretation_style: risk_view={risk_view}, emotion_weight={emotion_weight}, decision_speed={decision_speed}, response_style={response_style}\n'
+        f'- response_tuning: {style_guidance}'
+    )
+
+
+def _interpretation_style_guidance(
+    *,
+    risk_view: str,
+    emotion_weight: str,
+    decision_speed: str,
+    response_style: str,
+) -> str:
+    if response_style == 'conclusive':
+        return (
+            '상황을 구조와 판단의 문제로 다뤄라. 감정보다 해결과 결론을 먼저 제시하고, '
+            '리스크는 계산 가능한 요소처럼 설명하라. 답변은 단정적이고 빠른 결정이 느껴지게 정리하라.'
+        )
+    if response_style == 'descriptive':
+        return (
+            '상황을 체감과 맥락의 문제로 다뤄라. 감정과 분위기, 체감되는 불안을 충분히 짚은 뒤 '
+            '판단을 제시하라. 답변은 설명형으로 풀고, 신중하게 결론에 도달하는 흐름을 유지하라.'
+        )
+    return (
+        '관찰과 적응의 균형을 유지하라. 구조와 감정 모두를 과장 없이 반영하고, '
+        '성급하지도 지나치게 늘어지지도 않게 대응하라.'
+    )
+
+
+def _build_note_block(note_payload: Dict[str, Any], *, id_key: str) -> Dict[str, Any]:
+    note_text = str(note_payload.get('note') or '').strip()
+    hard_constraints = [str(item).strip() for item in note_payload.get('hard_constraints', []) if str(item).strip()] if isinstance(note_payload.get('hard_constraints'), list) else []
+    preferred_dynamic = [str(item).strip() for item in note_payload.get('preferred_dynamic', []) if str(item).strip()] if isinstance(note_payload.get('preferred_dynamic'), list) else []
+    relationship_expectation = str(note_payload.get('relationship_expectation') or '').strip()
+    return {
+        id_key: str(note_payload.get(id_key) or '').strip() or None,
+        'note': note_text or None,
+        'hard_constraints': hard_constraints[:5],
+        'preferred_dynamic': preferred_dynamic[:5],
+        'relationship_expectation': relationship_expectation or None,
+    }
+
+
+def _build_branch_context_block(*, branch_state: Dict[str, Any], session_state: Dict[str, Any]) -> Dict[str, Any]:
+    service = BranchVisibilityService()
+    return service.build_branch_context(branch_state if isinstance(branch_state, dict) else {}, session_state if isinstance(session_state, dict) else {})
+
+
+def _build_dynamic_state_block(
+    *,
+    character_state: Dict[str, Any],
+    session_state: Dict[str, Any],
+    branch_state: Dict[str, Any],
+) -> Dict[str, Any]:
+    character_flags = character_state.get('scene_flags', {}) if isinstance(character_state.get('scene_flags'), dict) else {}
+    relationship_delta = character_state.get('relationship_delta', {}) if isinstance(character_state.get('relationship_delta'), dict) else {}
+    session_flags = session_state.get('scene_flags', {}) if isinstance(session_state.get('scene_flags'), dict) else {}
+    route_flags = branch_state.get('route_flags', {}) if isinstance(branch_state.get('route_flags'), dict) else {}
+    return {
+        'character': {
+            'emotion': str(character_state.get('emotion') or 'neutral').strip() or 'neutral',
+            'location': str(character_state.get('location') or '').strip() or None,
+            'outfit': str(character_state.get('outfit') or '').strip() or None,
+            'scene_flags': {str(key): bool(value) for key, value in character_flags.items()},
+            'relationship_delta': {str(key): float(value) for key, value in relationship_delta.items() if _is_number(value)},
+            'status_notes': [str(item).strip() for item in character_state.get('status_notes', []) if str(item).strip()][:3],
+        },
+        'session': {
+            'branch_id': str(session_state.get('branch_id') or 'default').strip() or 'default',
+            'active_location': str(session_state.get('active_location') or '').strip() or None,
+            'active_phase': str(session_state.get('active_phase') or '').strip() or None,
+            'scene_flags': {str(key): bool(value) for key, value in session_flags.items()},
+            'status_notes': [str(item).strip() for item in session_state.get('status_notes', []) if str(item).strip()][:3],
+        },
+        'branch': {
+            'route_flags': {str(key): bool(value) for key, value in route_flags.items()},
+            'hidden_facts_revealed': [str(item).strip() for item in branch_state.get('hidden_facts_revealed', []) if str(item).strip()][:5],
+            'active_objectives': [str(item).strip() for item in branch_state.get('active_objectives', []) if str(item).strip()][:5],
+        },
+    }
+
+
+def _is_number(value: Any) -> bool:
+    try:
+        float(value)
+    except (TypeError, ValueError):
+        return False
+    return True
+
+
+def _build_user_response_tuning_lines(user_profile: Dict[str, Any]) -> List[str]:
+    interpretation_style = user_profile.get('interpretation_style', {}) if isinstance(user_profile.get('interpretation_style'), dict) else {}
+    response_style = str(interpretation_style.get('response_style') or 'balanced').strip()
+    if response_style == 'conclusive':
+        return [
+            '상황을 문제와 구조로 먼저 정리하고, 감정 묘사는 필요한 만큼만 짧게 다룬다.',
+            '리스크를 계산 가능한 조건, 변수, 우선순위로 나눠 설명한다.',
+            '결론이나 판단을 앞부분에 두고, 근거는 그 뒤에 압축해서 붙인다.',
+            '망설이는 어조보다 단정적이고 빠른 결정을 선호하는 톤을 유지한다.',
+        ]
+    if response_style == 'descriptive':
+        return [
+            '상황을 체감과 맥락으로 먼저 풀고, 감정의 결을 무시하지 않는다.',
+            '리스크를 단순 수치가 아니라 실제로 느껴지는 불안과 파장으로 설명한다.',
+            '배경과 맥락을 먼저 짚은 뒤에 판단을 제시한다.',
+            '서두르기보다 신중하게 결론에 도달하는 톤을 유지한다.',
+        ]
+    return [
+        '상황의 구조와 감정적 맥락을 균형 있게 함께 반영한다.',
+        '리스크는 계산 가능한 요소와 체감되는 부담을 함께 언급한다.',
+        '결론을 서두르지 않되 지나치게 늘이지 말고, 관찰과 적응의 흐름을 유지한다.',
+        '기본형 개척자를 상대한다는 전제로 차분하고 유연한 응답 흐름을 유지한다.',
+    ]
 
 
 def _detect_primary_language(text: str) -> str:

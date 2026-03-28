@@ -2,37 +2,57 @@
 
 텍스트 기반 캐릭터 챗봇 런타임 백엔드입니다.
 
-현재 범위는 다음까지 포함합니다.
+현재 버전은 단순 프롬프트 주입형 RP 런타임을 넘어, `동적 상태 + 요약 + 사실 누적 + 노트 + 브랜치 맥락`을 포함하는 상태 기반 RP 런타임까지 확장된 상태입니다.
+
+## 현재 범위
 
 - 채팅 세션 기반 `/chat/ask` 런타임
 - canonical domain store + vector index 보조 검색층
-- active character prompt injection
-- recent history 재사용
 - multi-character speaker selection
-- lore / scene / world / memory priority prompt
-- long-term memory promotion and retrieval use
-- relationship context injection
-- session-scoped model selection
-- character / memory / relationship / lore admin API
+- lore / memory / relationship retrieval
+- 장기 기억 승격(memory promotion)
+- 동적 상태 주입
+  - `character_state`
+  - `session_state`
+  - `branch_state`
+- 턴/세션 요약
+  - `turn_summary`
+  - `session_summary`
+- 확정 사실 누적
+  - `confirmed_facts`
+- 유저/세션 노트
+  - `user_notes`
+  - `session_notes`
+- branch-aware prompt / hidden fact visibility
+- Prompt Watch payload + QA 화면
+- 상태/노트/요약/사실 조회용 admin API
 - runtime integration tests
 
 ## 현재 상태
 
-현재 구현은 Phase 1 기본 마감 + Phase 2 확장 마감의 최소 범위를 반영합니다.
+현재 구현은 아래 3층으로 보는 것이 가장 정확합니다.
 
-- Phase 1
-  - single active character
-  - prompt injection
-  - recent history
-  - stable chat endpoint
-  - request-scoped logging
-  - E2E runtime tests
-- Phase 2
-  - multi-character speaker selector
-  - lore / scene / world priority
-  - long-term memory usage
-  - richer relationship context
-  - character admin tools
+1. 기본 런타임 골격
+- FastAPI 라우터
+- SQLite 세션/메시지 저장
+- JSON canonical domain store
+- vector retrieval 보조 검색
+
+2. RP 생성 계층
+- active speaker 선택
+- character / user / world / scene / lore / memory / relationship prompt injection
+- validator / repair / fallback 정책
+
+3. 상태 기반 SLM 계층
+- 동적 상태 추적
+- 턴 종료 후 상태 업데이트
+- turn/session summary
+- confirmed facts
+- branch context / hidden facts
+- user/session note
+- Prompt Watch 운영 가시화
+
+즉, 구조 골격은 `mellow_chat_runtime`이지만, SLM/RP 품질 계층은 케이브덕식 상태 기반 모델링 방향으로 상당 부분 이동한 상태입니다.
 
 ## 프로젝트 구조
 
@@ -41,28 +61,34 @@
 - `mellow_chat_runtime_data/`
   - SQLite DB, canonical 도메인 데이터 파일, vector index 파일
 - `tests/`
-  - 통합 테스트 포함
+  - 통합 테스트 및 Prompt Watch fixture
 - `service_backend_design_for_codex.md`
   - 초기 설계 참고 문서
 - `admin_to_user_nn_transition_design.md`
   - `admin -> user_NN` 전환 설계안
+- `slm_modeling_status_priorities.md`
+  - 현재 SLM 모델링 수준과 남은 갭
+- `prompt_watch_ui_spec.md`
+  - Prompt Watch 최신 UI/입력 계약 스펙
+- `prompt_watch_ui_cleanup_plan.md`
+  - Prompt Watch 정리 결과와 남은 후속 과제
 
 ## 문서 가이드
 
-어떤 문서를 먼저 봐야 할지 빠르게 판단하려면 아래 기준을 사용하면 됩니다.
-
-- 전체 런타임 구조, 현재 범위, 주요 API를 빠르게 파악하고 싶을 때
+- 전체 런타임 구조, 주요 API, 현재 범위를 빠르게 파악하고 싶을 때
   - `README.md`
-- 백엔드 구조, prompt/retrieval/runtime 설계 배경을 보고 싶을 때
-  - `service_backend_design_for_codex.md`
-- `admin -> user_NN` 확장, ownership, `/me/*` 계층 전환을 검토할 때
-  - `admin_to_user_nn_transition_design.md`
-- Prompt Watch UI를 별도 프론트엔드에서 구현하거나 전달용 스펙이 필요할 때
+- 현재 SLM 모델링 수준과 남은 갭을 보고 싶을 때
+  - `slm_modeling_status_priorities.md`
+- Prompt Watch 입력 계약과 표시 규칙을 보고 싶을 때
   - `prompt_watch_ui_spec.md`
-- Prompt Watch 프론트 렌더를 바로 테스트할 fixture가 필요할 때
+- Prompt Watch 정리 결과와 후속 작업 범위를 보고 싶을 때
+  - `prompt_watch_ui_cleanup_plan.md`
+- Prompt Watch fixture를 바로 렌더 테스트하고 싶을 때
   - `tests/fixtures/prompt_watch/admin_success_detail.json`
   - `tests/fixtures/prompt_watch/user_success_compact.json`
   - `tests/fixtures/prompt_watch/user_validation_failure_unavailable.json`
+- QA 화면에서 질문과 Prompt Watch를 같이 확인하고 싶을 때
+  - `GET /qa/prompt-watch`
 
 ## 빠른 실행
 
@@ -122,63 +148,10 @@ MEMORY_PROMOTION_MAX_ITEMS=20
 - `audience=user|admin` 실행 경로 분리
 - recent history 반영
 - active character 선택 및 prompt injection
-- 관계 컨텍스트 주입
-- long-term memory 주입
+- lore / memory / relationship / world / scene 주입
+- dynamic state / session summary / confirmed facts / notes / branch context 주입
 - request-scoped logging
 - structured error response
-
-non-stream 예시:
-
-```json
-{
-  "question": "How should you answer now?",
-  "audience": "user",
-  "stream": false,
-  "mode": "fast",
-  "persona_id": "default",
-  "user_profile_id": "user_char_01",
-  "character_ids": ["bot_char_01", "bot_char_02"],
-  "scene_id": "scene_default",
-  "world_id": "default",
-  "lore_topics": ["Interastral Peace Corporation"]
-}
-```
-
-`audience` 정책:
-
-- `user`
-  - 기본값
-  - validator 통과 시에만 정상 응답 반환
-  - fallback 응답 생성 금지
-  - validator 실패 시 명시적 실패 응답 반환
-- `admin`
-  - retry / repair / fallback / 상세 판정 정보 유지
-  - 디버깅 및 QA 용도
-  - 응답에 `rp_debug` 포함
-  - 응답에 `retrieval_debug` 포함
-
-RP 생성 안정화 정책:
-
-- RP 생성 요청은 Ollama chat 경로에서 `think=false`를 사용해 `message.content`에 최종 답변이 직접 들어가도록 유도합니다.
-- runtime retry 정책은 `agent_brain`에만 둡니다.
-- 최대 체인:
-  - main generation 1회
-  - 필요 시 repair generation 1회
-  - `audience=admin`에서만 fallback
-- `llm_service`는 empty-content safe retry를 수행하지 않습니다.
-- repair 프롬프트는 최종 출력 전용으로 짧게 유지합니다.
-  - 짧은 서술 1문단
-  - 따옴표 대사 1줄
-  - 코드블록 / JSON / 메타 텍스트 / 분석 금지
-
-출력 salvage:
-
-- assistant 출력에서 다음 오염을 repair 전에 정리합니다.
-  - `<|im_start|>`, `<|im_end|>`, `<|endoftext|>`
-  - fenced code block
-  - JSON-like RP 출력
-- `action` / `narration` / `dialogue` / `speech` / `line` 필드가 있으면 RP 텍스트로 복원합니다.
-- 복원 가능한 경우 repair 없이 first-pass validation으로 바로 통과시킵니다.
 
 non-stream 성공 응답 주요 필드:
 
@@ -193,78 +166,27 @@ non-stream 성공 응답 주요 필드:
 - `processing_time_ms`
 - `used_context`
 - `request_id`
+- `prompt_watch`
 
 `audience=admin` 추가 필드:
 
-- `retrieval_debug.query`
-- `retrieval_debug.lore_source`
-- `retrieval_debug.memory_source`
-- `retrieval_debug.relationship_source`
-- `retrieval_debug.lore_hit_ids`
-- `retrieval_debug.memory_hit_ids`
-- `retrieval_debug.relationship_hit_ids`
-- `retrieval_debug.errors`
-- `rp_debug.validator_passed`
-- `rp_debug.fallback_used`
-- `rp_debug.retry_count`
-- `rp_debug.final_verdict`
-- `rp_debug.failure_reason`
+- `retrieval_debug`
+- `rp_debug`
+- `state_debug`
 
-non-stream 실패 응답 예시:
+### 2. Prompt Priority
 
-```json
-{
-  "error": "model_unavailable",
-  "message": "LLM service unavailable",
-  "request_id": "chat_1234567890"
-}
-```
-
-RP 품질 실패 예시(`audience=user`):
-
-```json
-{
-  "success": false,
-  "error_code": "RP_VALIDATION_FAILED",
-  "message": "RP 응답 품질 검증에 실패했습니다. 잠시 후 다시 시도해 주세요.",
-  "request_id": "chat_1234567890",
-  "failure_reason": "narration_not_third_person"
-}
-```
-
-stream 응답 특성:
-
-- `event: chunk`
-- `event: done`
-- `event: error`
-
-### 2. Speaker Selection
-
-다자 대화 시 다음 화자를 선택합니다.
-
-반영 요소:
-
-- include / exclude scene rules
-- major / minor weight
-- recency penalty
-- max consecutive turns
-
-관련 코드:
-
-- `mellow_chat_runtime/core/speaker_selector.py`
-
-### 3. Prompt Priority
-
-프롬프트에는 현재 우선순위가 명시됩니다.
-
-우선순위:
+현재 프롬프트 우선순위는 대략 아래 구조를 따른다.
 
 1. current scene rules and scene goal
-2. world-state constraints and continuity
-3. character memories and relationship context
-4. lorebook facts for support and terminology
+2. dynamic state and continuity
+3. confirmed facts and session summary
+4. world-state constraints
+5. character memories and relationship context
+6. lorebook support
+7. recent history
 
-### 4. Memory
+### 3. Memory / Summary / Facts
 
 - short-term memory
   - 세션 메시지가 SQLite `chat_messages`에 저장
@@ -274,61 +196,67 @@ stream 응답 특성:
   - generation prompt에서 중요한 메모리 상위 항목을 사용
 - memory promotion
   - 중요 문장을 감지해 `important_memories`로 승격
+- turn summary
+  - 각 턴의 핵심과 상태 변화를 저장
+- session summary
+  - 최근 turn summary를 압축해 세션 맥락으로 저장
+- confirmed facts
+  - session-local fact ledger로 별도 저장
 
-### 4.1 Canonical Store / Vector Index
+### 4. Dynamic State / Branch
+
+- `character_state`
+  - emotion
+  - location
+  - outfit
+  - scene_flags
+  - relationship_delta
+- `session_state`
+  - branch_id
+  - active_location
+  - active_phase
+  - scene_flags
+- `branch_state`
+  - route_flags
+  - unlock_conditions
+  - hidden_facts_revealed
+  - hidden_facts
+  - active_objectives
+
+브랜치에서는 hidden fact visibility 로직이 적용되어, 공개된 사실만 prompt에 주입됩니다.
+
+### 5. Prompt Watch
+
+Prompt Watch는 `/chat/ask` 응답에 포함되는 설명 인터페이스입니다.
+
+admin detail에서는 아래를 보여줍니다.
+
+- 상태
+- 세션 요약
+- 확정 사실
+- 관계
+- 유저/세션 노트
+- 로어/메모리 보조 맥락
+- 생성 경로
+- retrieval/rp debug
+- 운영 액션
+  - 상태 조회
+  - 노트 조회
+  - 세션 요약/사실 조회
+  - PUT 템플릿 생성
+
+QA 화면:
+
+- `GET /qa/prompt-watch`
+
+### 6. Canonical Store / Vector Index
 
 - canonical store는 source of truth입니다.
   - session / message / participants / model selection / request log는 SQLite에 유지됩니다.
-  - user profile / character profile / scene / world / lore / memory / relationship canonical payload는 domain JSON에 유지됩니다.
+  - user profile / character profile / scene / world / lore / memory / relationship / state / notes canonical payload는 domain JSON에 유지됩니다.
 - vector index는 보조 검색층입니다.
   - 검색 가속과 관련 context 후보 추출만 담당합니다.
   - canonical structured field를 덮어쓰지 않습니다.
-- lore / memory / relationship canonical payload에는 `summary_text`와 `embedding_status`가 함께 저장됩니다.
-  - admin 수정 후 searchable field가 바뀌면 `embedding_status=dirty`
-  - reindex 완료 후 현재 상태 전이 용어는 `dirty -> clean`
-
-### 5. Relationship Context
-
-active character 기준으로 scene participant와의 관계를 조회해서 prompt에 넣습니다.
-
-예시 정보:
-
-- 관계 요약
-- 관계 톤
-- boundary
-- shared memory
-
-### 6. RP QA Verification
-
-QA 스모크:
-
-```bash
-python scripts/rp_qa_smoke.py --max-scenarios 3 --audience admin
-```
-
-로그에서 확인할 항목:
-
-- `llm.chat.response`
-  - `content_len > 0`
-  - `thinking_len = 0`
-  - `thinking_only=False`
-- `rp.output.first_pass_valid`
-  - repair 없이 통과한 경우
-- `rp.output.repair_pass_valid`
-  - 1회 repair로 복구된 경우
-- `rp.output.fallback_used`
-  - `audience=admin`에서만 허용
-
-현재 QA 기준:
-
-- `fallback_used = false` 이고 `validator_passed = true` 이면 `PASS`
-- `fallback_used = true` 이면 `FAIL`
-- `audience=user`에서 validator 실패로 명시적 실패 반환 시 `FAIL`
-
-검증 예시:
-
-- fenced JSON + trailing token 출력이 와도 sanitize 후 1회 호출만으로 통과 가능
-- smoke 실행 시 request latency는 repair 미사용 케이스에서 대체로 1초대, repair 사용 시 2초대 수준으로 확인
 
 ## 주요 API
 
@@ -357,17 +285,37 @@ python scripts/rp_qa_smoke.py --max-scenarios 3 --audience admin
 
 ### Admin
 
-- `GET /admin/characters`
-- `GET /admin/characters/{user|bot}/{character_id}`
-- `PUT /admin/characters/{user|bot}/{character_id}`
-- `DELETE /admin/characters/{user|bot}/{character_id}`
-- `GET /admin/memories/{character_id}`
-- `PUT /admin/memories/{character_id}`
-- `GET /admin/relationships/{source_id}`
-- `PUT /admin/relationships`
-- `GET /admin/lore/{lore_id}`
-- `PUT /admin/lore/{lore_id}`
-- `POST /admin/vector/reindex`
+- Characters
+  - `GET /admin/characters`
+  - `GET /admin/characters/{user|bot}/{character_id}`
+  - `PUT /admin/characters/{user|bot}/{character_id}`
+  - `DELETE /admin/characters/{user|bot}/{character_id}`
+- Memories / Relationships / Lore
+  - `GET /admin/memories/{character_id}`
+  - `PUT /admin/memories/{character_id}`
+  - `GET /admin/relationships/{source_id}`
+  - `PUT /admin/relationships`
+  - `GET /admin/lore/{lore_id}`
+  - `PUT /admin/lore/{lore_id}`
+- Dynamic State
+  - `GET /admin/state/characters/{character_id}`
+  - `PUT /admin/state/characters/{character_id}`
+  - `GET /admin/state/sessions/{session_id}`
+  - `PUT /admin/state/sessions/{session_id}`
+  - `GET /admin/state/branches/{branch_id}`
+  - `PUT /admin/state/branches/{branch_id}`
+- Summary / Facts / Notes
+  - `GET /admin/turn-summaries/{session_id}`
+  - `GET /admin/session-summaries/{session_id}`
+  - `GET /admin/confirmed-facts/{session_id}`
+  - `GET /admin/user-notes/{profile_id}`
+  - `PUT /admin/user-notes/{profile_id}`
+  - `DELETE /admin/user-notes/{profile_id}`
+  - `GET /admin/session-notes/{session_id}`
+  - `PUT /admin/session-notes/{session_id}`
+  - `DELETE /admin/session-notes/{session_id}`
+- Vector
+  - `POST /admin/vector/reindex`
 
 ## 데이터 파일
 
@@ -388,65 +336,36 @@ python scripts/rp_qa_smoke.py --max-scenarios 3 --audience admin
 pytest -q
 ```
 
-테스트 DB 정책:
-
-- 운영 DB는 그대로 두고, `pytest` 실행 시에만 fixture 기반 DB override가 적용됩니다.
-- 테스트는 각 케이스마다 별도 SQLite test DB를 사용합니다.
-- 따라서 운영용 `mellow_chat_runtime_data/chatbot.db`를 테스트가 직접 공유하지 않습니다.
-
-현재 포함 테스트 범위:
+주요 테스트 범위:
 
 - memory promotion
 - vector retrieval / reindex smoke
 - retrieval scoring QA scenarios
-- `/chat/ask` non-stream success
-- `/chat/ask` stream success
-- `/chat/ask` failure path
+- `/chat/ask` non-stream / stream / failure path
 - character prompt enforcement
 - multi-character speaker selection
 - relationship context prompt injection
 - long-term memory prompt usage
 - admin API flow
+- Prompt Watch contract / fixture
 
-retrieval scoring QA 테스트만 따로 실행:
+Prompt Watch 관련 테스트:
+
+```bash
+pytest -q tests/test_prompt_watch_contract.py
+```
+
+retrieval scoring QA 테스트:
 
 ```bash
 pytest -q test_retrieval_reranker.py
 ```
 
-전체 테스트와 함께 확인:
-
-```bash
-pytest -q
-```
-
-retrieval scoring QA에서 확인하는 항목:
-
-- active speaker가 바뀌면 memory ranking이 바뀌는지
-- participant 조합이 바뀌면 relationship ranking이 바뀌는지
-- `lore_topics` 제공 시 exact topic / alias lore가 우선되는지
-- unrelated hit가 threshold 아래로 떨어져 최종 prompt 주입에서 제외되는지
-
-QA 스모크 실행 예시:
+QA 스모크:
 
 ```bash
 python scripts/rp_qa_smoke.py --max-scenarios 1 --audience admin
-python scripts/rp_qa_smoke.py --max-scenarios 1 --audience admin --save mellow_chat_runtime_data/qa/rp_qa_result.json --save-format json
-python scripts/rp_qa_smoke.py --max-scenarios 1 --audience admin --save mellow_chat_runtime_data/qa/rp_qa_result.md --save-format md
 ```
-
-QA 리포트 판정 기준:
-
-- `fallback_used = false` 이고 `validator_passed = true` 이면 `PASS`
-- `fallback_used = true` 이면 `FAIL`
-- `audience=user` 경로에서 validator 실패로 명시적 실패 반환 시 `FAIL`
-
-저장 파일은 실행 시각 기반 `run_id`가 붙어 저장됩니다.
-
-예:
-
-- `rp_qa_result_20260314_040738.json`
-- `rp_qa_result_20260314_040738.md`
 
 ## admin -> user_NN 확장
 
@@ -469,3 +388,4 @@ QA 리포트 판정 기준:
 - media / VTuber pipeline
 - scheduler / evolution / guardian
 - 대규모 아키텍처 재설계
+- 다국어 번역 파이프라인

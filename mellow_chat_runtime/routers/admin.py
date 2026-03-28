@@ -7,7 +7,10 @@ from pydantic import BaseModel, Field, ValidationError
 
 from mellow_chat_runtime import app_state
 from mellow_chat_runtime.core.domain_lookup_store import get_domain_store
-from mellow_chat_runtime.domain.schemas import ModelCatalogEntry
+from mellow_chat_runtime.domain.schemas import ModelCatalogEntry, SessionNote, UserNote
+from mellow_chat_runtime.services.turn_summary_service import TurnSummaryService
+from mellow_chat_runtime.services.session_summary_service import SessionSummaryService
+from mellow_chat_runtime.services.confirmed_facts_service import ConfirmedFactsService
 from mellow_chat_runtime.services.summary_formatter import prepare_searchable_payload
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
@@ -41,6 +44,14 @@ class ModelCatalogUpsertRequest(BaseModel):
     data: Dict[str, Any]
 
 
+class StateUpsertRequest(BaseModel):
+    data: Dict[str, Any]
+
+
+class NoteUpsertRequest(BaseModel):
+    data: Dict[str, Any]
+
+
 def _store():
     settings = app_state.settings
     data_path = getattr(settings, "domain_data_file", None) if settings else None
@@ -62,6 +73,26 @@ def _prepare_searchable_upsert(
     if vector_service is not None:
         updated = vector_service.mark_dirty_if_needed(section, key, updated, existing=existing)
     return prepare_searchable_payload(section, key, updated)
+
+
+def _validate_user_note_payload(profile_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    data = dict(payload)
+    data['profile_id'] = profile_id
+    try:
+        item = UserNote(**data)
+    except ValidationError as exc:
+        raise HTTPException(status_code=422, detail=exc.errors()) from exc
+    return item.model_dump()
+
+
+def _validate_session_note_payload(session_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    data = dict(payload)
+    data['session_id'] = session_id
+    try:
+        item = SessionNote(**data)
+    except ValidationError as exc:
+        raise HTTPException(status_code=422, detail=exc.errors()) from exc
+    return item.model_dump()
 
 
 def _validate_model_catalog_payload(model_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
@@ -204,6 +235,113 @@ async def delete_model_catalog_item(model_id: str) -> Dict[str, Any]:
     if not deleted:
         raise HTTPException(status_code=404, detail="Model catalog entry not found")
     return {"success": True, "deleted_id": model_id}
+
+
+
+@router.get("/state/characters/{character_id}")
+async def get_character_state(character_id: str) -> Dict[str, Any]:
+    store = _store()
+    return store.get_character_state(character_id)
+
+
+@router.put("/state/characters/{character_id}")
+async def upsert_character_state(character_id: str, request: StateUpsertRequest) -> Dict[str, Any]:
+    store = _store()
+    store.upsert_character_state(character_id, request.data)
+    return {"success": True, "item": store.get_character_state(character_id)}
+
+
+@router.get("/state/sessions/{session_id}")
+async def get_session_state(session_id: str) -> Dict[str, Any]:
+    store = _store()
+    return store.get_session_state(session_id)
+
+
+@router.put("/state/sessions/{session_id}")
+async def upsert_session_state(session_id: str, request: StateUpsertRequest) -> Dict[str, Any]:
+    store = _store()
+    store.upsert_session_state(session_id, request.data)
+    return {"success": True, "item": store.get_session_state(session_id)}
+
+
+@router.get("/state/branches/{branch_id}")
+async def get_branch_state(branch_id: str) -> Dict[str, Any]:
+    store = _store()
+    return store.get_branch_state(branch_id)
+
+
+@router.put("/state/branches/{branch_id}")
+async def upsert_branch_state(branch_id: str, request: StateUpsertRequest) -> Dict[str, Any]:
+    store = _store()
+    store.upsert_branch_state(branch_id, request.data)
+    return {"success": True, "item": store.get_branch_state(branch_id)}
+
+
+@router.get("/turn-summaries/{session_id}")
+async def list_turn_summaries(session_id: str, limit: int = Query(default=20, ge=1, le=100)) -> Dict[str, Any]:
+    store = _store()
+    service = TurnSummaryService(store)
+    return {"items": service.list_for_session(session_id, limit=limit)}
+
+
+@router.get("/session-summaries/{session_id}")
+async def get_session_summary(session_id: str) -> Dict[str, Any]:
+    store = _store()
+    service = SessionSummaryService(store)
+    return service.get_for_session(session_id)
+
+
+@router.get("/confirmed-facts/{session_id}")
+async def list_confirmed_facts(session_id: str, limit: int = Query(default=10, ge=1, le=100)) -> Dict[str, Any]:
+    store = _store()
+    service = ConfirmedFactsService(store)
+    return {"items": service.list_for_session(session_id, limit=limit)}
+
+
+@router.get("/user-notes/{profile_id}")
+async def get_user_note(profile_id: str) -> Dict[str, Any]:
+    store = _store()
+    return store.get_user_note(profile_id)
+
+
+@router.put("/user-notes/{profile_id}")
+async def upsert_user_note(profile_id: str, request: NoteUpsertRequest) -> Dict[str, Any]:
+    store = _store()
+    validated = _validate_user_note_payload(profile_id, request.data)
+    store.upsert_user_note(profile_id, validated)
+    return {"success": True, "item": store.get_user_note(profile_id)}
+
+
+@router.delete("/user-notes/{profile_id}")
+async def delete_user_note(profile_id: str) -> Dict[str, Any]:
+    store = _store()
+    deleted = store.delete("user_notes", profile_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="User note not found")
+    return {"success": True, "deleted_id": profile_id}
+
+
+@router.get("/session-notes/{session_id}")
+async def get_session_note(session_id: str) -> Dict[str, Any]:
+    store = _store()
+    return store.get_session_note(session_id)
+
+
+@router.put("/session-notes/{session_id}")
+async def upsert_session_note(session_id: str, request: NoteUpsertRequest) -> Dict[str, Any]:
+    store = _store()
+    validated = _validate_session_note_payload(session_id, request.data)
+    store.upsert_session_note(session_id, validated)
+    return {"success": True, "item": store.get_session_note(session_id)}
+
+
+@router.delete("/session-notes/{session_id}")
+async def delete_session_note(session_id: str) -> Dict[str, Any]:
+    store = _store()
+    deleted = store.delete("session_notes", session_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Session note not found")
+    return {"success": True, "deleted_id": session_id}
 
 
 @router.post("/vector/reindex")

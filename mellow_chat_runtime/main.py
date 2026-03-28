@@ -15,6 +15,7 @@ from mellow_chat_runtime.infra.database import init_db
 from mellow_chat_runtime.routers.admin import router as admin_router
 from mellow_chat_runtime.routers.chat import router as chat_router
 from mellow_chat_runtime.routers.models import router as model_router
+from mellow_chat_runtime.routers.prompt_watch_ui import router as prompt_watch_ui_router
 from mellow_chat_runtime.routers.runtime import router as runtime_router
 from mellow_chat_runtime.services.llm_service import create_llm_service
 from mellow_chat_runtime.services.vector_retrieval_service import VectorRetrievalService
@@ -103,6 +104,7 @@ app.include_router(chat_router)
 app.include_router(model_router)
 app.include_router(runtime_router)
 app.include_router(admin_router)
+app.include_router(prompt_watch_ui_router)
 
 
 @app.get("/health")

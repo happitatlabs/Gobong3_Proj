@@ -25,6 +25,13 @@ class DomainLookupDispatcher:
         "lookup_relationships",
         "lookup_world_state",
         "lookup_scene_state",
+        "lookup_character_state",
+        "lookup_session_state",
+        "lookup_branch_state",
+        "lookup_session_summary",
+        "lookup_confirmed_facts",
+        "lookup_user_note",
+        "lookup_session_note",
         "lookup_dialogue_priority",
     }
 
@@ -70,6 +77,34 @@ class DomainLookupDispatcher:
                 "args": ["scene_id"],
             },
             {
+                "name": "lookup_character_state",
+                "args": ["character_id"],
+            },
+            {
+                "name": "lookup_session_state",
+                "args": ["session_id"],
+            },
+            {
+                "name": "lookup_branch_state",
+                "args": ["branch_id"],
+            },
+            {
+                "name": "lookup_session_summary",
+                "args": ["session_id"],
+            },
+            {
+                "name": "lookup_confirmed_facts",
+                "args": ["session_id", "limit"],
+            },
+            {
+                "name": "lookup_user_note",
+                "args": ["profile_id"],
+            },
+            {
+                "name": "lookup_session_note",
+                "args": ["session_id"],
+            },
+            {
                 "name": "lookup_dialogue_priority",
                 "args": ["scene_id"],
             },
@@ -107,4 +142,18 @@ class DomainLookupDispatcher:
             return LookupResult(name=name, payload=self._store.get_world_state(str(args.get("world_id", "default"))))
         if name == "lookup_scene_state":
             return LookupResult(name=name, payload=self._store.get_scene_state(str(args.get("scene_id", "scene_default"))))
+        if name == "lookup_character_state":
+            return LookupResult(name=name, payload=self._store.get_character_state(str(args.get("character_id", ""))))
+        if name == "lookup_session_state":
+            return LookupResult(name=name, payload=self._store.get_session_state(str(args.get("session_id", "default"))))
+        if name == "lookup_branch_state":
+            return LookupResult(name=name, payload=self._store.get_branch_state(str(args.get("branch_id", "default"))))
+        if name == "lookup_session_summary":
+            return LookupResult(name=name, payload=self._store.get_session_summary(str(args.get("session_id", "default"))))
+        if name == "lookup_confirmed_facts":
+            return LookupResult(name=name, payload=self._store.list_confirmed_facts(str(args.get("session_id", "default")), limit=int(args.get("limit", 8) or 8)))
+        if name == "lookup_user_note":
+            return LookupResult(name=name, payload=self._store.get_user_note(str(args.get("profile_id", "default"))))
+        if name == "lookup_session_note":
+            return LookupResult(name=name, payload=self._store.get_session_note(str(args.get("session_id", "default"))))
         return LookupResult(name=name, payload=self._store.get_dialogue_priority(str(args.get("scene_id", "default"))))

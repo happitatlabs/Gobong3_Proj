@@ -64,6 +64,86 @@ class WorldState(BaseModel):
     facts: List[str] = Field(default_factory=list)
 
 
+class CharacterState(BaseModel):
+    character_id: str
+    emotion: str = "neutral"
+    location: str = ""
+    outfit: str = ""
+    scene_flags: Dict[str, bool] = Field(default_factory=dict)
+    relationship_delta: Dict[str, float] = Field(default_factory=dict)
+    status_notes: List[str] = Field(default_factory=list)
+
+
+class SessionState(BaseModel):
+    session_id: str
+    branch_id: str = "default"
+    active_location: str = ""
+    active_phase: str = ""
+    scene_flags: Dict[str, bool] = Field(default_factory=dict)
+    status_notes: List[str] = Field(default_factory=list)
+
+
+class HiddenFactEntry(BaseModel):
+    id: str
+    fact: str
+    unlock_conditions: List[str] = Field(default_factory=list)
+    reveal_patterns: List[str] = Field(default_factory=list)
+    related_routes: List[str] = Field(default_factory=list)
+
+
+class BranchState(BaseModel):
+    branch_id: str = "default"
+    route_flags: Dict[str, bool] = Field(default_factory=dict)
+    unlock_conditions: Dict[str, bool] = Field(default_factory=dict)
+    hidden_facts_revealed: List[str] = Field(default_factory=list)
+    hidden_facts: List[HiddenFactEntry] = Field(default_factory=list)
+    active_objectives: List[str] = Field(default_factory=list)
+
+
+class TurnSummary(BaseModel):
+    id: str
+    session_id: str
+    turn_index: int
+    speaker_id: str = ""
+    summary: str = ""
+    facts: List[str] = Field(default_factory=list)
+    state_changes: Dict[str, Any] = Field(default_factory=dict)
+
+
+class SessionSummary(BaseModel):
+    session_id: str
+    turn_count: int = 0
+    summary: str = ""
+    recent_turn_ids: List[str] = Field(default_factory=list)
+    summary_text: Optional[str] = None
+
+
+class ConfirmedFact(BaseModel):
+    id: str
+    session_id: str
+    fact: str
+    source_turn_id: str = ""
+    confidence: float = 0.0
+    related_characters: List[str] = Field(default_factory=list)
+    summary_text: Optional[str] = None
+
+
+class UserNote(BaseModel):
+    profile_id: str
+    note: str = ""
+    hard_constraints: List[str] = Field(default_factory=list)
+    preferred_dynamic: List[str] = Field(default_factory=list)
+    relationship_expectation: str = ""
+
+
+class SessionNote(BaseModel):
+    session_id: str
+    note: str = ""
+    hard_constraints: List[str] = Field(default_factory=list)
+    preferred_dynamic: List[str] = Field(default_factory=list)
+    relationship_expectation: str = ""
+
+
 class MemoryPossession(BaseModel):
     character_id: str
     important_memories: List[str] = Field(default_factory=list)
@@ -125,8 +205,16 @@ class DomainDataBundle(BaseModel):
     lorebook: Dict[str, LorebookEntry] = Field(default_factory=dict)
     scene_state: Dict[str, SceneState] = Field(default_factory=dict)
     world_state: Dict[str, WorldState] = Field(default_factory=dict)
+    character_state: Dict[str, CharacterState] = Field(default_factory=dict)
+    session_state: Dict[str, SessionState] = Field(default_factory=dict)
+    branch_state: Dict[str, BranchState] = Field(default_factory=dict)
+    turn_summary: Dict[str, TurnSummary] = Field(default_factory=dict)
+    session_summary: Dict[str, SessionSummary] = Field(default_factory=dict)
+    confirmed_facts: Dict[str, ConfirmedFact] = Field(default_factory=dict)
+    user_notes: Dict[str, UserNote] = Field(default_factory=dict)
+    session_notes: Dict[str, SessionNote] = Field(default_factory=dict)
     memories: Dict[str, MemoryPossession] = Field(default_factory=dict)
     relationships: Dict[str, Dict[str, RelationshipContext]] = Field(default_factory=dict)
     dialogue_priority: Dict[str, DialoguePriority] = Field(default_factory=dict)
-    user_profiles: Dict[str, Dict[str, Optional[str]]] = Field(default_factory=dict)
+    user_profiles: Dict[str, Dict[str, Any]] = Field(default_factory=dict)
     model_catalog: Dict[str, ModelCatalogEntry] = Field(default_factory=dict)

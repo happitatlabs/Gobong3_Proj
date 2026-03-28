@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 
 from mellow_chat_runtime import app_state
 from mellow_chat_runtime.core.domain_lookup_store import get_domain_store
+from mellow_chat_runtime.core.prompt_builder import _build_branch_context_block, _build_dynamic_state_block
 from mellow_chat_runtime.core.rp_parser import ParsedSceneEvent, parse_scene_event
 from mellow_chat_runtime.core.speaker_relevance import build_speaker_relevance
 from mellow_chat_runtime.core.speaker_selector import SpeakerParticipant, select_next_speaker
@@ -29,8 +30,13 @@ from mellow_chat_runtime.infra.database import (
     get_or_create_user,
 )
 from mellow_chat_runtime.services.memory_promotion_service import MemoryPromotionService
+from mellow_chat_runtime.services.state_update_service import StateUpdateService
+from mellow_chat_runtime.services.session_summary_service import SessionSummaryService
+from mellow_chat_runtime.services.confirmed_facts_service import ConfirmedFactsService
+from mellow_chat_runtime.services.contradiction_check_service import ContradictionCheckService
 from mellow_chat_runtime.services.model_routing_service import ModelRoutingService
 from mellow_chat_runtime.services.summary_formatter import build_prompt_watch_summary
+from mellow_chat_runtime.services.turn_summary_service import TurnSummaryService
 from mellow_chat_runtime.services.vector_retrieval_service import RetrievalQueryContext, VectorRetrievalService
 
 router = APIRouter(tags=['Chat'])
@@ -368,8 +374,110 @@ def _build_prompt_watch_context_items(items: Any, section: str, source: Optional
     return out
 
 
+def _build_prompt_watch_dynamic_state(
+    domain_store: Any,
+    *,
+    character_id: Optional[str],
+    session_id: Optional[int],
+) -> Dict[str, Any]:
+    cleaned_character_id = str(character_id or '').strip()
+    cleaned_session_id = str(session_id or 'default').strip() or 'default'
+    character_state = domain_store.get_character_state(cleaned_character_id) if cleaned_character_id else {}
+    session_state = domain_store.get_session_state(cleaned_session_id)
+    branch_id = str(session_state.get('branch_id') or 'default').strip() or 'default'
+    branch_state = domain_store.get_branch_state(branch_id)
+    return _build_dynamic_state_block(
+        character_state=character_state if isinstance(character_state, dict) else {},
+        session_state=session_state if isinstance(session_state, dict) else {},
+        branch_state=branch_state if isinstance(branch_state, dict) else {},
+    )
+
+
+def _build_prompt_watch_session_summary(domain_store: Any, session_id: Optional[int]) -> Dict[str, Any]:
+    cleaned_session_id = str(session_id or 'default').strip() or 'default'
+    return domain_store.get_session_summary(cleaned_session_id)
+
+
+def _build_prompt_watch_confirmed_facts(domain_store: Any, session_id: Optional[int], limit: int = 5) -> List[Dict[str, Any]]:
+    cleaned_session_id = str(session_id or 'default').strip() or 'default'
+    return domain_store.list_confirmed_facts(cleaned_session_id, limit=limit)
+
+
+def _build_prompt_watch_user_note(domain_store: Any, profile_id: Optional[str]) -> Dict[str, Any]:
+    cleaned_profile_id = str(profile_id or 'default').strip() or 'default'
+    return domain_store.get_user_note(cleaned_profile_id)
+
+
+def _build_prompt_watch_session_note(domain_store: Any, session_id: Optional[int]) -> Dict[str, Any]:
+    cleaned_session_id = str(session_id or 'default').strip() or 'default'
+    return domain_store.get_session_note(cleaned_session_id)
+
+
+def _build_prompt_watch_branch_context(domain_store: Any, session_id: Optional[int]) -> Dict[str, Any]:
+    cleaned_session_id = str(session_id or 'default').strip() or 'default'
+    session_state = domain_store.get_session_state(cleaned_session_id)
+    branch_id = str(session_state.get('branch_id') or 'default').strip() or 'default'
+    branch_state = domain_store.get_branch_state(branch_id)
+    return _build_branch_context_block(branch_state=branch_state if isinstance(branch_state, dict) else {}, session_state=session_state if isinstance(session_state, dict) else {})
+
+
+
+def _persist_turn_runtime_state(
+    domain_store: Any,
+    *,
+    session_id: int,
+    character_id: Optional[str],
+    user_text: str,
+    assistant_text: str,
+    scene_state: Dict[str, Any],
+) -> Dict[str, Any]:
+    try:
+        cleaned_session_id = str(session_id or 'default').strip() or 'default'
+        fact_service = ConfirmedFactsService(domain_store)
+        existing_confirmed_facts = fact_service.list_for_session(cleaned_session_id, limit=12)
+        contradiction_service = ContradictionCheckService()
+        contradictions = contradiction_service.detect(assistant_text, existing_confirmed_facts)
+        update_service = StateUpdateService(domain_store)
+        state_changes = update_service.apply_turn(
+            session_id=cleaned_session_id,
+            character_id=str(character_id or '').strip(),
+            user_text=user_text,
+            assistant_text=assistant_text,
+            scene_state=scene_state if isinstance(scene_state, dict) else {},
+        )
+        turn_summary_service = TurnSummaryService(domain_store)
+        turn_summary = turn_summary_service.record_turn(
+            session_id=cleaned_session_id,
+            speaker_id=str(character_id or '').strip(),
+            user_text=user_text,
+            assistant_text=assistant_text,
+            state_changes=state_changes,
+        )
+        session_summary_service = SessionSummaryService(domain_store)
+        session_summary = session_summary_service.rebuild_for_session(cleaned_session_id)
+        confirmed_facts = fact_service.update_from_turn(turn_summary)
+        return {
+            'state_changes': state_changes,
+            'turn_summary': turn_summary,
+            'session_summary': session_summary,
+            'confirmed_facts': confirmed_facts,
+            'contradictions': contradictions,
+        }
+    except Exception as exc:
+        logger.warning('chat.ask.state_update_error session_id=%s character_id=%s error=%s', session_id, character_id, exc)
+        return {
+            'state_changes': {},
+            'turn_summary': None,
+            'session_summary': None,
+            'confirmed_facts': [],
+            'contradictions': [],
+            'error': str(exc),
+        }
+
+
 def _build_prompt_watch_payload(
     request: ChatRequest,
+    effective_user_profile_id: str,
     selection: Any,
     selected_speaker_id: Optional[str],
     selected_speaker_type: Optional[str],
@@ -379,6 +487,8 @@ def _build_prompt_watch_payload(
     result: Any,
     active_character: Dict[str, Any],
     scene_state: Dict[str, Any],
+    domain_store: Any,
+    session_id: Optional[int],
 ) -> Dict[str, Any]:
     applied_lore = retrieval_context.get('lore', [])[:3] if isinstance(retrieval_context.get('lore'), list) else []
     applied_memories = retrieval_context.get('memories', [])[:4] if isinstance(retrieval_context.get('memories'), list) else []
@@ -413,7 +523,7 @@ def _build_prompt_watch_payload(
     return {
         **compact,
         'applied_persona_id': request.persona_id,
-        'applied_user_profile_id': request.user_profile_id,
+        'applied_user_profile_id': effective_user_profile_id,
         'generation_path': generation_path,
         'applied_context': {
             'lore': _build_prompt_watch_context_items(applied_lore, 'lorebook', retrieval_debug.get('lore_source')),
@@ -423,6 +533,20 @@ def _build_prompt_watch_payload(
                 'goal': str(scene_state.get('goal') or '').strip(),
                 'mood': str(scene_state.get('mood') or '').strip(),
             },
+            'dynamic_state': _build_prompt_watch_dynamic_state(
+                domain_store,
+                character_id=selected_speaker_id or request.character_id,
+                session_id=session_id,
+            ),
+            'session_summary': _build_prompt_watch_session_summary(domain_store, session_id),
+            'confirmed_facts': _build_prompt_watch_context_items(
+                _build_prompt_watch_confirmed_facts(domain_store, session_id, limit=5),
+                'confirmed_facts',
+                'session_store',
+            ),
+            'branch_context': _build_prompt_watch_branch_context(domain_store, session_id),
+            'user_note': _build_prompt_watch_user_note(domain_store, effective_user_profile_id),
+            'session_note': _build_prompt_watch_session_note(domain_store, session_id),
         },
     }
 
@@ -578,6 +702,12 @@ async def chat_ask(request: ChatRequest, http_request: Request, x_user: Optional
         requested_character_ids = [request.character_id]
 
     domain_store = get_domain_store(data_path=app_state.settings.domain_data_file if app_state.settings else None)
+    effective_user_profile_id = request.user_profile_id
+    if not effective_user_profile_id or effective_user_profile_id == 'default':
+        if session_participants['user_character_ids']:
+            effective_user_profile_id = session_participants['user_character_ids'][0]
+    if effective_user_profile_id and not domain_store.get_user_profile(effective_user_profile_id):
+        effective_user_profile_id = 'user_char_01'
     known_characters = _list_known_characters(domain_store)
     parsed_scene_event = parse_scene_event(request.question, known_characters)
     speaker_relevance = build_speaker_relevance(
@@ -588,14 +718,12 @@ async def chat_ask(request: ChatRequest, http_request: Request, x_user: Optional
 
     active_character_ids = _compact_unique(
         requested_character_ids
-        + session_participants['user_character_ids']
+        + ([effective_user_profile_id] if effective_user_profile_id and effective_user_profile_id != 'default' else [])
         + session_participants['bot_character_ids']
     )
     effective_lore_topic = lore_keys[0] if lore_keys else request.lore_topic
 
-    user_speaker_id = request.user_profile_id
-    if session_participants['user_character_ids']:
-        user_speaker_id = session_participants['user_character_ids'][0]
+    user_speaker_id = effective_user_profile_id or request.user_profile_id
     user_msg = ChatMessage(
         session_id=session.id,
         role='user',
@@ -675,7 +803,7 @@ async def chat_ask(request: ChatRequest, http_request: Request, x_user: Optional
     active_character = _resolve_prompt_watch_character(domain_store, selected_speaker_id or request.character_id)
     used_context = {
         'persona_id': request.persona_id,
-        'user_profile_id': request.user_profile_id,
+        'user_profile_id': effective_user_profile_id,
         'character_ids': active_character_ids,
         'scene_id': request.scene_id,
         'world_id': request.world_id,
@@ -743,11 +871,12 @@ async def chat_ask(request: ChatRequest, http_request: Request, x_user: Optional
                 retrieval_context=retrieval_context,
                 mode=selection.mode,
                 persona_id=request.persona_id,
-                user_profile_id=request.user_profile_id,
+                user_profile_id=effective_user_profile_id,
                 lore_topic=effective_lore_topic,
                 character_id=selected_speaker_id or request.character_id,
                 world_id=request.world_id,
                 scene_id=request.scene_id,
+                session_id=str(session.id),
                 selected_model=selection.model,
                 scene_event=parsed_scene_event,
                 target_character_hint=parsed_scene_event.target_character_hint,
@@ -780,6 +909,14 @@ async def chat_ask(request: ChatRequest, http_request: Request, x_user: Optional
                 memory_promotion_service.promote_from_text(user_speaker_id, request.question)
                 if selected_speaker_id:
                     memory_promotion_service.promote_from_text(selected_speaker_id, full)
+            state_debug = _persist_turn_runtime_state(
+                domain_store,
+                session_id=session.id,
+                character_id=selected_speaker_id or request.character_id,
+                user_text=request.question,
+                assistant_text=full,
+                scene_state=scene_state if isinstance(scene_state, dict) else {},
+            )
 
             done_payload = {
                 'done': True,
@@ -806,6 +943,7 @@ async def chat_ask(request: ChatRequest, http_request: Request, x_user: Optional
             }
             done_payload['prompt_watch'] = _build_prompt_watch_payload(
                 request=request,
+                effective_user_profile_id=effective_user_profile_id,
                 selection=selection,
                 selected_speaker_id=selected_speaker_id,
                 selected_speaker_type=speaker_type,
@@ -815,9 +953,12 @@ async def chat_ask(request: ChatRequest, http_request: Request, x_user: Optional
                 result=result,
                 active_character=active_character,
                 scene_state=scene_state if isinstance(scene_state, dict) else {},
+                domain_store=domain_store,
+                session_id=session.id,
             )
             if request.audience == 'admin':
                 done_payload['retrieval_debug'] = retrieval_debug
+                done_payload['state_debug'] = state_debug
             if request.audience == 'admin':
                 done_payload['rp_debug'] = {
                     'validator_passed': result.validator_passed,
@@ -898,11 +1039,12 @@ async def chat_ask(request: ChatRequest, http_request: Request, x_user: Optional
             retrieval_context=retrieval_context,
             mode=request.mode,
             persona_id=request.persona_id,
-            user_profile_id=request.user_profile_id,
+            user_profile_id=effective_user_profile_id,
             lore_topic=effective_lore_topic,
             character_id=selected_speaker_id or request.character_id,
             world_id=request.world_id,
             scene_id=request.scene_id,
+            session_id=str(session.id),
             selected_model=selection.model,
             scene_event=parsed_scene_event,
             target_character_hint=parsed_scene_event.target_character_hint,
@@ -937,6 +1079,14 @@ async def chat_ask(request: ChatRequest, http_request: Request, x_user: Optional
             memory_promotion_service.promote_from_text(user_speaker_id, request.question)
             if selected_speaker_id:
                 memory_promotion_service.promote_from_text(selected_speaker_id, cleaned_response)
+        state_debug = _persist_turn_runtime_state(
+            domain_store,
+            session_id=session.id,
+            character_id=selected_speaker_id or request.character_id,
+            user_text=request.question,
+            assistant_text=cleaned_response,
+            scene_state=scene_state if isinstance(scene_state, dict) else {},
+        )
         logger.info(
             'chat.ask.end request_id=%s session_id=%s message_id=%s success=true latency_ms=%s',
             request_id,
@@ -967,6 +1117,7 @@ async def chat_ask(request: ChatRequest, http_request: Request, x_user: Optional
             },
             'prompt_watch': _build_prompt_watch_payload(
                 request=request,
+                effective_user_profile_id=effective_user_profile_id,
                 selection=selection,
                 selected_speaker_id=selected_speaker_id,
                 selected_speaker_type=speaker_type,
@@ -976,11 +1127,14 @@ async def chat_ask(request: ChatRequest, http_request: Request, x_user: Optional
                 result=result,
                 active_character=active_character,
                 scene_state=scene_state if isinstance(scene_state, dict) else {},
+                domain_store=domain_store,
+                session_id=session.id,
             ),
             'request_id': request_id,
         }
         if request.audience == 'admin':
             response_payload['retrieval_debug'] = retrieval_debug
+            response_payload['state_debug'] = state_debug
         if request.audience == 'admin':
             response_payload['rp_debug'] = {
                 'validator_passed': result.validator_passed,

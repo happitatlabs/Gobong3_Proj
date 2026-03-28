@@ -48,6 +48,7 @@ class EngineBackedAdapter(RuntimeAdapter):
             character_id=character_id,
             world_id=str(metadata.get("world_id", "default")),
             scene_id=str(metadata.get("scene_id", "default")),
+            session_id=req.session_id,
         )
 
         latency_ms = (time.perf_counter() - t0) * 1000

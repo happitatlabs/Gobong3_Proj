@@ -155,11 +155,86 @@ class PromptWatchSceneContext(BaseModel):
     mood: str = ""
 
 
+class PromptWatchDynamicCharacterState(BaseModel):
+    emotion: str = "neutral"
+    location: Optional[str] = None
+    outfit: Optional[str] = None
+    scene_flags: Dict[str, bool] = Field(default_factory=dict)
+    relationship_delta: Dict[str, float] = Field(default_factory=dict)
+    status_notes: List[str] = Field(default_factory=list)
+
+
+class PromptWatchDynamicSessionState(BaseModel):
+    branch_id: str = "default"
+    active_location: Optional[str] = None
+    active_phase: Optional[str] = None
+    scene_flags: Dict[str, bool] = Field(default_factory=dict)
+    status_notes: List[str] = Field(default_factory=list)
+
+
+class PromptWatchDynamicBranchState(BaseModel):
+    route_flags: Dict[str, bool] = Field(default_factory=dict)
+    hidden_facts_revealed: List[str] = Field(default_factory=list)
+    active_objectives: List[str] = Field(default_factory=list)
+
+
+class PromptWatchDynamicState(BaseModel):
+    character: PromptWatchDynamicCharacterState = Field(default_factory=PromptWatchDynamicCharacterState)
+    session: PromptWatchDynamicSessionState = Field(default_factory=PromptWatchDynamicSessionState)
+    branch: PromptWatchDynamicBranchState = Field(default_factory=PromptWatchDynamicBranchState)
+
+
+class PromptWatchSessionSummary(BaseModel):
+    session_id: str = "default"
+    turn_count: int = 0
+    summary: str = ""
+    recent_turn_ids: List[str] = Field(default_factory=list)
+    summary_text: Optional[str] = None
+
+
+class PromptWatchBranchHiddenFact(BaseModel):
+    id: str
+    fact: str = ""
+    unlock_conditions: List[str] = Field(default_factory=list)
+    related_routes: List[str] = Field(default_factory=list)
+
+
+class PromptWatchBranchContext(BaseModel):
+    branch_id: str = "default"
+    route_flags: Dict[str, bool] = Field(default_factory=dict)
+    unlock_conditions: Dict[str, bool] = Field(default_factory=dict)
+    active_objectives: List[str] = Field(default_factory=list)
+    visible_hidden_facts: List[PromptWatchBranchHiddenFact] = Field(default_factory=list)
+    hidden_fact_ids: List[str] = Field(default_factory=list)
+
+
+class PromptWatchUserNote(BaseModel):
+    profile_id: Optional[str] = None
+    note: Optional[str] = None
+    hard_constraints: List[str] = Field(default_factory=list)
+    preferred_dynamic: List[str] = Field(default_factory=list)
+    relationship_expectation: Optional[str] = None
+
+
+class PromptWatchSessionNote(BaseModel):
+    session_id: Optional[str] = None
+    note: Optional[str] = None
+    hard_constraints: List[str] = Field(default_factory=list)
+    preferred_dynamic: List[str] = Field(default_factory=list)
+    relationship_expectation: Optional[str] = None
+
+
 class PromptWatchAppliedContext(BaseModel):
     lore: List[PromptWatchContextItem] = Field(default_factory=list)
     memories: List[PromptWatchContextItem] = Field(default_factory=list)
     relationships: List[PromptWatchContextItem] = Field(default_factory=list)
     scene: PromptWatchSceneContext = Field(default_factory=PromptWatchSceneContext)
+    dynamic_state: PromptWatchDynamicState = Field(default_factory=PromptWatchDynamicState)
+    session_summary: PromptWatchSessionSummary = Field(default_factory=PromptWatchSessionSummary)
+    confirmed_facts: List[PromptWatchContextItem] = Field(default_factory=list)
+    branch_context: PromptWatchBranchContext = Field(default_factory=PromptWatchBranchContext)
+    user_note: PromptWatchUserNote = Field(default_factory=PromptWatchUserNote)
+    session_note: PromptWatchSessionNote = Field(default_factory=PromptWatchSessionNote)
 
 
 class PromptWatchDetail(PromptWatchCompact):

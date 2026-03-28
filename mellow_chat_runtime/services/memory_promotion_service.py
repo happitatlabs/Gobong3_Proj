@@ -25,6 +25,14 @@ class MemoryPromotionService:
         "결정",
         "계획",
     )
+    NOISE_PATTERNS = (
+        "<|",
+        "</think>",
+        "<think>",
+        "assistant",
+        "system prompt",
+        "there wasn't a complex prompt",
+    )
 
     def __init__(self, domain_store: DomainLookupStore, max_items: int = 20) -> None:
         self._domain_store = domain_store
@@ -77,6 +85,8 @@ class MemoryPromotionService:
             candidate = raw_part.strip(" -:;,")
             if len(candidate) < 12 or len(candidate) > 220:
                 continue
+            if not self._is_promotable_candidate(candidate):
+                continue
             lowered = candidate.lower()
             if not any(keyword in lowered for keyword in self.KEYWORDS):
                 continue
@@ -87,6 +97,20 @@ class MemoryPromotionService:
             if len(candidates) >= 2:
                 break
         return candidates
+
+    def _is_promotable_candidate(self, candidate: str) -> bool:
+        lowered = candidate.lower()
+        if any(pattern in lowered for pattern in self.NOISE_PATTERNS):
+            return False
+        if candidate.count('"') >= 2:
+            return False
+        if "*" in candidate:
+            return False
+        if re.search(r"[\U0001F300-\U0001FAFF]", candidate):
+            return False
+        if re.search(r"\b(I'll focus|Turn 1|raw prompt|thinking)\b", candidate, re.IGNORECASE):
+            return False
+        return True
 
     def _clean_memory_list(self, values: object) -> List[str]:
         if not isinstance(values, list):

@@ -1,9 +1,10 @@
 {
   "audience": "user",
   "isSuccessResponse": true,
+  "session_id": 314,
   "prompt_watch": {
     "active_character_id": "bot_char_01",
-    "active_character_name": "Aventurine",
+    "active_character_name": "어벤츄린",
     "selected_speaker_id": "bot_char_01",
     "selected_speaker_type": "bot",
     "scene_id": "scene_default",
@@ -23,7 +24,7 @@
       "mode": "fast",
       "source": "catalog",
       "catalog_id": "rp_stable_main",
-      "label": "RP Stable Main",
+      "label": "RP 안정 메인",
       "role_tags": [
         "rp_stable",
         "canon"

@@ -99,6 +99,7 @@ class AgentBrain:
         scene_id: str = 'default',
         mode: str = 'fast',
         selected_model: Optional[str] = None,
+        session_id: Optional[str] = None,
         scene_event: Optional[ParsedSceneEvent] = None,
         target_character_hint: Optional[str] = None,
         request_id: Optional[str] = None,
@@ -114,9 +115,16 @@ class AgentBrain:
         memories = self._lookup.execute('lookup_memories_possessions', {'character_id': character_id}).payload
         world_state = self._lookup.execute('lookup_world_state', {'world_id': world_id}).payload
         scene_state = self._lookup.execute('lookup_scene_state', {'scene_id': scene_id}).payload
+        character_state = self._lookup.execute('lookup_character_state', {'character_id': character_id}).payload
+        session_state = self._lookup.execute('lookup_session_state', {'session_id': session_id or 'default'}).payload
+        branch_state = self._lookup.execute('lookup_branch_state', {'branch_id': str(session_state.get('branch_id', 'default'))}).payload
+        session_summary = self._lookup.execute('lookup_session_summary', {'session_id': session_id or 'default'}).payload
+        confirmed_facts = self._lookup.execute('lookup_confirmed_facts', {'session_id': session_id or 'default', 'limit': 8}).payload
+        user_note = self._lookup.execute('lookup_user_note', {'profile_id': user_profile_id or 'default'}).payload
+        session_note = self._lookup.execute('lookup_session_note', {'session_id': session_id or 'default'}).payload
         dialogue_priority = self._lookup.execute('lookup_dialogue_priority', {'scene_id': scene_id}).payload
         active_character = self._resolve_active_character(character_id)
-        counterpart_ids = self._resolve_counterpart_ids(scene_state, character_id)
+        counterpart_ids = self._resolve_counterpart_ids(scene_state, character_id, user_profile_id)
         relationships = self._lookup.execute(
             'lookup_relationships',
             {'character_id': character_id, 'counterpart_ids': counterpart_ids},
@@ -142,6 +150,13 @@ class AgentBrain:
                     'memories': memories,
                     'world_state': world_state,
                     'scene_state': scene_state,
+                    'character_state': character_state,
+                    'session_state': session_state,
+                    'branch_state': branch_state,
+                    'session_summary': session_summary,
+                    'confirmed_facts': confirmed_facts,
+                    'user_note': user_note,
+                    'session_note': session_note,
                     'dialogue_priority': dialogue_priority,
                     'active_character': active_character,
                     'relationships': relationships,
@@ -155,6 +170,7 @@ class AgentBrain:
             persona=persona,
             dialogue_priority=dialogue_priority,
             active_character=active_character,
+            user_profile=user_profile if isinstance(user_profile, dict) else {},
             relationships=relationships if isinstance(relationships, list) else [],
         )
         user_prompt = build_user_prompt(
@@ -164,6 +180,13 @@ class AgentBrain:
             memories=self._prioritize_memories(memories if isinstance(memories, dict) else {}),
             world_state=world_state if isinstance(world_state, dict) else {},
             scene_state=scene_state if isinstance(scene_state, dict) else {},
+            character_state=character_state if isinstance(character_state, dict) else {},
+            session_state=session_state if isinstance(session_state, dict) else {},
+            branch_state=branch_state if isinstance(branch_state, dict) else {},
+            session_summary=session_summary if isinstance(session_summary, dict) else {},
+            confirmed_facts=confirmed_facts if isinstance(confirmed_facts, list) else [],
+            user_note=user_note if isinstance(user_note, dict) else {},
+            session_note=session_note if isinstance(session_note, dict) else {},
             relationships=relationships if isinstance(relationships, list) else [],
             history=history,
             scene_event=scene_event,
@@ -379,7 +402,7 @@ class AgentBrain:
                 '최종 RP 답변만 다시 써라.\n'
                 '서술은 엄격한 3인칭이어야 한다.\n'
                 '서술에 내 / 나 / 내게 / 우리 / 나를 / 내 시선 / 내 눈빛을 쓰지 마라.\n'
-                '사용자는 상대 / 사용자 / 멜로우로만 가리켜라.\n'
+                '사용자는 상대 / 사용자 / 개척자로만 가리켜라.\n'
                 '짧은 서술 한 문단과 따옴표 대사 한 줄만 출력하라.\n'
                 '코드블록, JSON, 메타 텍스트, 분석을 쓰지 마라.'
             )
@@ -407,14 +430,19 @@ class AgentBrain:
         if has_forbidden_output_markers(cleaned):
             reasons.append('meta_or_token_leak')
         narration, dialogue = self._split_rp_sections(cleaned)
+        dialogue_chunks = [chunk.strip() for chunk in _DIALOGUE_RE.findall(cleaned) if chunk.strip()]
         if not dialogue:
             reasons.append('missing_quoted_dialogue')
+        elif len(dialogue_chunks) != 1:
+            reasons.append('multiple_dialogue_lines')
         if not narration:
             reasons.append('missing_narration')
         if expected_language == 'ko' and self._detect_primary_language(cleaned) == 'en':
             reasons.append('language_drift')
         if narration and not self._is_third_person_narration(narration, active_character):
             reasons.append('narration_not_third_person')
+        if self._has_character_name_drift(str(text), active_character):
+            reasons.append('character_name_drift')
         return not reasons, reasons
 
     def _is_valid_rp_output(
@@ -440,7 +468,7 @@ class AgentBrain:
             return 'POV_RULE_FAILED'
         if 'missing_narration' in reasons or 'missing_quoted_dialogue' in reasons:
             return 'NARRATION_RULE_FAILED'
-        if 'language_drift' in reasons or 'meta_or_token_leak' in reasons:
+        if 'language_drift' in reasons or 'meta_or_token_leak' in reasons or 'character_name_drift' in reasons or 'multiple_dialogue_lines' in reasons:
             return 'CHARACTER_STYLE_FAILED'
         return 'RP_VALIDATION_FAILED'
 
@@ -483,6 +511,29 @@ class AgentBrain:
         if re.search(r'(^|[\n\s])([^\s"“”]{2,20})(은|는|이|가)\s*', text):
             return True
         return False
+
+    def _has_character_name_drift(self, text: str, active_character: Optional[Dict[str, Any]]) -> bool:
+        text = (text or '').strip()
+        if not text:
+            return False
+        character = active_character or {}
+        allowed_names = {
+            str(character.get('name') or '').strip().lower(),
+            *(str(alias).strip().lower() for alias in character.get('aliases', []) if str(alias).strip()),
+        }
+        allowed_names = {item for item in allowed_names if item}
+        if not allowed_names:
+            return False
+        lead = text.split('"', 1)[0].split('“', 1)[0].strip()
+        subject_match = re.search(r'^[\s*("“”]*([A-Za-z가-힣]{2,20})(은|는|이|가)', lead)
+        if not subject_match:
+            return False
+        subject = str(subject_match.group(1) or '').strip().lower()
+        if not subject or subject in allowed_names:
+            return False
+        if subject in {'그', '그녀'}:
+            return False
+        return True
 
     def _split_rp_sections(self, text: str) -> tuple[str, str]:
         cleaned = sanitize_assistant_text(text)
@@ -554,11 +605,28 @@ class AgentBrain:
             'speech_style': {'tone': 'neutral', 'forbidden': []},
         }
 
-    def _resolve_counterpart_ids(self, scene_state: Dict[str, Any], character_id: str) -> List[str]:
+    def _resolve_counterpart_ids(self, scene_state: Dict[str, Any], character_id: str, user_profile_id: str) -> List[str]:
         participants = scene_state.get('participants', []) if isinstance(scene_state, dict) else []
-        if not isinstance(participants, list):
-            return []
-        return [str(item).strip() for item in participants if str(item).strip() and str(item).strip() != character_id]
+        counterpart_ids: List[str] = []
+        if isinstance(participants, list):
+            for item in participants:
+                cleaned = str(item).strip()
+                if not cleaned or cleaned == character_id:
+                    continue
+                if cleaned != user_profile_id and self._lookup.execute('lookup_user_character', {'character_id': cleaned}).payload:
+                    continue
+                counterpart_ids.append(cleaned)
+        cleaned_user_profile_id = str(user_profile_id or '').strip()
+        if cleaned_user_profile_id and cleaned_user_profile_id != character_id:
+            counterpart_ids.append(cleaned_user_profile_id)
+        deduped: List[str] = []
+        seen = set()
+        for item in counterpart_ids:
+            if item in seen:
+                continue
+            seen.add(item)
+            deduped.append(item)
+        return deduped
 
     def _prioritize_memories(self, memories: Dict[str, Any]) -> Dict[str, Any]:
         items = memories.get('important_memories', []) if isinstance(memories, dict) else []

@@ -1,9 +1,10 @@
 {
   "audience": "admin",
   "isSuccessResponse": true,
+  "session_id": 314,
   "prompt_watch": {
     "active_character_id": "bot_char_01",
-    "active_character_name": "Aventurine",
+    "active_character_name": "어벤츄린",
     "selected_speaker_id": "bot_char_01",
     "selected_speaker_type": "bot",
     "scene_id": "scene_default",
@@ -26,7 +27,7 @@
       "mode": "fast",
       "source": "session",
       "catalog_id": "rp_stable_main",
-      "label": "RP Stable Main",
+      "label": "RP 안정 메인",
       "role_tags": [
         "rp_stable",
         "canon"
@@ -45,6 +46,135 @@
       "failure_reason": null
     },
     "applied_context": {
+      "scene": {
+        "goal": "대화 정리",
+        "mood": "차분함"
+      },
+      "dynamic_state": {
+        "character": {
+          "emotion": "흥미를 보이며 침착함",
+          "location": "아스트랄 라운지 데크",
+          "outfit": "정돈된 정장",
+          "scene_flags": {
+            "negotiation_mode": true,
+            "public_setting": true
+          },
+          "relationship_delta": {
+            "user_char_01": 0.3
+          },
+          "status_notes": [
+            "사용자의 반응을 시험하듯 관찰 중",
+            "도발은 하되 공개적 모욕은 피함"
+          ]
+        },
+        "session": {
+          "branch_id": "ipc_route",
+          "active_location": "아스트랄 라운지 데크",
+          "active_phase": "탐색적 협상",
+          "scene_flags": {
+            "trust_probe_active": true,
+            "contract_terms_open": true
+          },
+          "status_notes": [
+            "대화가 아직 결론 단계는 아님"
+          ]
+        },
+        "branch": {
+          "route_flags": {
+            "ipc_route": true,
+            "trust_route": false
+          },
+          "hidden_facts_revealed": [
+            "hf_contract_leverage"
+          ],
+          "active_objectives": [
+            "사용자의 협상 성향 확인",
+            "공개 충돌 없이 대화 주도권 유지"
+          ]
+        }
+      },
+      "session_summary": {
+        "session_id": "314",
+        "turn_count": 4,
+        "summary": "[bot_char_01] 어벤츄린은 협상 분위기를 가볍게 열었고, [user_char_01] 개척자는 조건을 바로 수용하지 않고 관망했다.",
+        "recent_turn_ids": [
+          "314:1",
+          "314:2",
+          "314:3",
+          "314:4"
+        ],
+        "summary_text": "[bot_char_01] 어벤츄린은 협상 분위기를 가볍게 열었고, [user_char_01] 개척자는 조건을 바로 수용하지 않고 관망했다."
+      },
+      "confirmed_facts": [
+        {
+          "id": "314:fact_contract_room",
+          "source": "session_store",
+          "topic": null,
+          "character_id": null,
+          "target_id": null,
+          "summary_text": "현재 대화는 아스트랄 라운지 데크에서 진행 중이다."
+        },
+        {
+          "id": "314:fact_negotiation_open",
+          "source": "session_store",
+          "topic": null,
+          "character_id": null,
+          "target_id": null,
+          "summary_text": "협상 조건은 아직 확정되지 않았고, 탐색 단계에 머물러 있다."
+        }
+      ],
+      "branch_context": {
+        "branch_id": "ipc_route",
+        "route_flags": {
+          "ipc_route": true,
+          "trust_route": false
+        },
+        "unlock_conditions": {
+          "heard_contract_keyword": true,
+          "private_room_entered": false
+        },
+        "active_objectives": [
+          "사용자의 협상 성향 확인",
+          "다음 턴에서 계약 키워드 반응 유도"
+        ],
+        "visible_hidden_facts": [
+          {
+            "id": "hf_contract_leverage",
+            "fact": "어벤츄린은 이미 사용자의 결정 속도를 협상 지렛대로 평가하고 있다.",
+            "unlock_conditions": [
+              "heard_contract_keyword"
+            ],
+            "related_routes": [
+              "ipc_route"
+            ]
+          }
+        ],
+        "hidden_fact_ids": [
+          "hf_contract_leverage"
+        ]
+      },
+      "user_note": {
+        "profile_id": "user_char_01",
+        "note": "사용자는 세계관을 완전히 내면화한 인물보다, 관찰과 적응 사이에서 반응하는 개척자 톤을 선호한다.",
+        "hard_constraints": [
+          "사용자를 과하게 떠보는 식으로 몰아붙이지 않는다"
+        ],
+        "preferred_dynamic": [
+          "긴장감은 유지하되 관계 파국으로 밀지 않기"
+        ],
+        "relationship_expectation": "경계와 흥미가 동시에 느껴지는 협력 직전의 거리감"
+      },
+      "session_note": {
+        "session_id": "314",
+        "note": "이번 세션은 협상 시작부라서 정보 공개량을 급격히 늘리지 않는다.",
+        "hard_constraints": [
+          "첫 두 턴 안에 모든 의도를 설명하지 않는다"
+        ],
+        "preferred_dynamic": [
+          "가벼운 시험, 짧은 탐색, 즉답 회피"
+        ],
+        "relationship_expectation": "탐색적 신뢰 형성"
+      },
       "lore": [
         {
           "id": "lore_001",
@@ -52,7 +182,7 @@
           "topic": "Interastral Peace Corporation",
           "character_id": null,
           "target_id": null,
-          "summary_text": "Interastral Peace Corporation is the primary political and financial organization referenced in this scene."
+          "summary_text": "Interastral Peace Corporation은 이 장면에서 협상과 계약 문맥의 기준이 되는 핵심 조직이다."
         }
       ],
       "memories": [
@@ -62,7 +192,7 @@
           "topic": null,
           "character_id": "bot_char_01",
           "target_id": null,
-          "summary_text": "Aventurine remembers prior negotiations where IPC protocol mattered."
+          "summary_text": "어벤츄린은 IPC 규약이 실제 협상 분위기를 좌우하던 이전 장면을 기억하고 있다."
         },
         {
           "id": "bot_char_01:1",
@@ -70,7 +200,7 @@
           "topic": null,
           "character_id": "bot_char_01",
           "target_id": null,
-          "summary_text": "He tends to frame risk as a calculated trade instead of a moral dilemma."
+          "summary_text": "그는 위험을 도덕 문제보다 계산 가능한 거래 조건으로 프레이밍하는 경향이 있다."
         }
       ],
       "relationships": [
@@ -80,13 +210,9 @@
           "topic": null,
           "character_id": "bot_char_01",
           "target_id": "bot_char_02",
-          "summary_text": "Tense but functional rapport shaped by strategic caution."
+          "summary_text": "전략적 경계가 남아 있지만 공적 장면에서는 협력 가능한 관계."
         }
-      ],
-      "scene": {
-        "goal": "대화 정리",
-        "mood": "calm"
-      }
+      ]
     }
   },
   "retrieval_debug": {

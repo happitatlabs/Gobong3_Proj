@@ -9,11 +9,89 @@
   "user_profiles": {
     "user_char_01": {
       "id": "user_char_01",
-      "name": "Mellow",
-      "profile": "UI/UX designer and programmer focused on character immersion.",
+      "name": "개척자",
+      "display_name": "개척자",
+      "role": "trailblazer",
+      "aliases": [
+        "Trailblazer",
+        "trailblazer"
+      ],
+      "profile": "낯선 상황에 들어온 외부자이자, 세계관에 완전히 속하지 않은 관찰자.",
+      "persona": "기본형 개척자. 관찰과 적응의 균형을 유지하며 상황을 이해하고 대응한다.",
+      "selection_hint": "기본형: 관찰과 적응의 균형",
+      "core_context": [
+        "낯선 상황에 들어온 외부자",
+        "상황을 이해하고 대응해야 하는 입장",
+        "세계관에 완전히 속하지 않은 관찰자적 위치"
+      ],
+      "interpretation_style": {
+        "risk_view": "balanced",
+        "emotion_weight": "medium",
+        "decision_speed": "steady",
+        "response_style": "balanced"
+      },
       "traits": [
-        "design-driven",
-        "continuity-focused"
+        "outsider-observer",
+        "adaptive",
+        "balanced"
+      ]
+    },
+    "user_char_02": {
+      "id": "user_char_02",
+      "name": "개척자",
+      "display_name": "개척자 - 구조형",
+      "role": "trailblazer",
+      "aliases": [
+        "Trailblazer",
+        "trailblazer"
+      ],
+      "profile": "낯선 상황을 구조와 문제로 파악하는 외부자.",
+      "persona": "문제를 구조로 파악하고 빠르게 결정을 내리는 타입",
+      "selection_hint": "구조형: 해결과 판단 중심",
+      "core_context": [
+        "낯선 상황에 들어온 외부자",
+        "상황을 이해하고 대응해야 하는 입장",
+        "세계관에 완전히 속하지 않은 관찰자적 위치"
+      ],
+      "interpretation_style": {
+        "risk_view": "structural",
+        "emotion_weight": "low",
+        "decision_speed": "fast",
+        "response_style": "conclusive"
+      },
+      "traits": [
+        "structural",
+        "decisive",
+        "solution-first"
+      ]
+    },
+    "user_char_03": {
+      "id": "user_char_03",
+      "name": "개척자",
+      "display_name": "개척자 - 경험형",
+      "role": "trailblazer",
+      "aliases": [
+        "Trailblazer",
+        "trailblazer"
+      ],
+      "profile": "낯선 상황을 감정과 맥락으로 받아들이는 외부자.",
+      "persona": "상황을 감정과 맥락으로 받아들이는 타입",
+      "selection_hint": "경험형: 감정과 맥락 중심",
+      "core_context": [
+        "낯선 상황에 들어온 외부자",
+        "상황을 이해하고 대응해야 하는 입장",
+        "세계관에 완전히 속하지 않은 관찰자적 위치"
+      ],
+      "interpretation_style": {
+        "risk_view": "felt",
+        "emotion_weight": "high",
+        "decision_speed": "deliberate",
+        "response_style": "descriptive"
+      },
+      "traits": [
+        "experiential",
+        "context-sensitive",
+        "deliberate"
       ]
     }
   },
@@ -21,19 +99,103 @@
     "user_char_01": {
       "id": "user_char_01",
       "type": "user",
-      "name": "Mellow",
-      "profile": "UI/UX designer and programmer",
+      "name": "개척자",
+      "display_name": "개척자",
+      "role": "trailblazer",
+      "profile": "낯선 상황에 들어온 외부자이자, 세계관에 완전히 속하지 않은 관찰자.",
+      "persona": "기본형 개척자. 관찰과 적응의 균형을 유지한다.",
+      "selection_hint": "기본형: 관찰과 적응의 균형",
+      "core_context": [
+        "낯선 상황에 들어온 외부자",
+        "상황을 이해하고 대응해야 하는 입장",
+        "세계관에 완전히 속하지 않은 관찰자적 위치"
+      ],
+      "interpretation_style": {
+        "risk_view": "balanced",
+        "emotion_weight": "medium",
+        "decision_speed": "steady",
+        "response_style": "balanced"
+      },
       "traits": [
-        "design-driven",
-        "character immersion"
+        "outsider-observer",
+        "adaptive",
+        "balanced"
       ],
       "relationship_keys": [
         "crew_main"
       ],
       "is_major": true,
       "aliases": [
-        "멜로우",
-        "mellow"
+        "Trailblazer",
+        "trailblazer"
+      ]
+    },
+    "user_char_02": {
+      "id": "user_char_02",
+      "type": "user",
+      "name": "개척자",
+      "display_name": "개척자 - 구조형",
+      "role": "trailblazer",
+      "profile": "낯선 상황을 구조와 문제로 파악하는 외부자.",
+      "persona": "문제를 구조로 파악하고 빠르게 결정을 내리는 타입",
+      "selection_hint": "구조형: 해결과 판단 중심",
+      "core_context": [
+        "낯선 상황에 들어온 외부자",
+        "상황을 이해하고 대응해야 하는 입장",
+        "세계관에 완전히 속하지 않은 관찰자적 위치"
+      ],
+      "interpretation_style": {
+        "risk_view": "structural",
+        "emotion_weight": "low",
+        "decision_speed": "fast",
+        "response_style": "conclusive"
+      },
+      "traits": [
+        "structural",
+        "decisive",
+        "solution-first"
+      ],
+      "relationship_keys": [
+        "crew_main"
+      ],
+      "is_major": true,
+      "aliases": [
+        "Trailblazer",
+        "trailblazer"
+      ]
+    },
+    "user_char_03": {
+      "id": "user_char_03",
+      "type": "user",
+      "name": "개척자",
+      "display_name": "개척자 - 경험형",
+      "role": "trailblazer",
+      "profile": "낯선 상황을 감정과 맥락으로 받아들이는 외부자.",
+      "persona": "상황을 감정과 맥락으로 받아들이는 타입",
+      "selection_hint": "경험형: 감정과 맥락 중심",
+      "core_context": [
+        "낯선 상황에 들어온 외부자",
+        "상황을 이해하고 대응해야 하는 입장",
+        "세계관에 완전히 속하지 않은 관찰자적 위치"
+      ],
+      "interpretation_style": {
+        "risk_view": "felt",
+        "emotion_weight": "high",
+        "decision_speed": "deliberate",
+        "response_style": "descriptive"
+      },
+      "traits": [
+        "experiential",
+        "context-sensitive",
+        "deliberate"
+      ],
+      "relationship_keys": [
+        "crew_main"
+      ],
+      "is_major": true,
+      "aliases": [
+        "Trailblazer",
+        "trailblazer"
       ]
     }
   },
@@ -85,7 +247,7 @@
         "IPC",
         "스타피스 컴퍼니"
       ],
-      "content": "A galaxy-scale organization handling finance and contracts.",
+      "content": "은하 단위의 금융과 계약을 관리하는 초거대 조직이다.",
       "priority": 10
     },
     "lore_002": {
@@ -95,31 +257,31 @@
         "스톤하트",
         "Ten Stonehearts"
       ],
-      "content": "Senior strategic figures aligned with high-value IPC operations.",
+      "content": "고가치 IPC 작전에 맞물려 움직이는 상위 전략 인물들이다.",
       "priority": 8
     },
     "lore_003": {
       "id": "lore_003",
-      "topic": "Astral Lounge Protocol",
+      "topic": "Astral 라운지 Protocol",
       "aliases": [
         "라운지 규약",
-        "Lounge protocol"
+        "라운지 protocol"
       ],
-      "content": "Negotiations in shared lounges prioritize calm tone and turn-taking.",
+      "content": "공용 라운지에서의 협상은 차분한 어조와 발화 순서를 우선한다.",
       "priority": 6
     }
   },
   "scene_state": {
     "scene_default": {
       "id": "scene_default",
-      "location": "Lounge",
-      "time": "Evening",
+      "location": "라운지",
+      "time": "저녁",
       "participants": [
         "user_char_01",
         "bot_char_01",
         "bot_char_02"
       ],
-      "goal": "Synchronize character plans",
+      "goal": "인물들의 의도를 조율한다",
       "mood": "calm",
       "rules": [
         {
@@ -139,12 +301,12 @@
   "world_state": {
     "default": {
       "id": "default",
-      "location": "Astral lounge",
-      "time": "Evening",
-      "state": "Stable",
+      "location": "아스트랄 라운지",
+      "time": "저녁",
+      "state": "안정",
       "facts": [
-        "Travel routes are open",
-        "No immediate external crisis"
+        "이동 경로는 현재 열려 있다",
+        "즉각적인 외부 위기는 없다"
       ]
     }
   },
@@ -152,30 +314,52 @@
     "user_char_01": {
       "character_id": "user_char_01",
       "important_memories": [
-        "Past project incident",
-        "Recent trust shift"
+        "낯선 환경에서는 먼저 장면을 읽고 균형 있게 대응하려 한다.",
+        "관찰과 적응을 함께 유지하는 기본형 개척자 프레임을 가진다."
       ],
       "possessions": [
-        "Card case",
-        "Notebook"
+        "카드 케이스",
+        "노트"
+      ]
+    },
+    "user_char_02": {
+      "character_id": "user_char_02",
+      "important_memories": [
+        "상황을 구조와 변수로 나눠 빠르게 판단하는 구조형 개척자 프레임을 가진다.",
+        "리스크를 계산 가능한 요소로 보고 결론을 앞에 두는 편이다."
+      ],
+      "possessions": [
+        "카드 케이스",
+        "노트"
+      ]
+    },
+    "user_char_03": {
+      "character_id": "user_char_03",
+      "important_memories": [
+        "상황을 체감과 맥락으로 받아들이는 경험형 개척자 프레임을 가진다.",
+        "감정과 분위기를 짚은 뒤 신중하게 결론에 도달하는 편이다."
+      ],
+      "possessions": [
+        "카드 케이스",
+        "노트"
       ]
     },
     "bot_char_01": {
       "character_id": "bot_char_01",
       "important_memories": [
-        "Debt negotiation at station nine"
+        "제9 정거장에서의 부채 협상"
       ],
       "possessions": [
-        "Gemstone token"
+        "보석 토큰"
       ]
     },
     "bot_char_02": {
       "character_id": "bot_char_02",
       "important_memories": [
-        "Public oath in Penacony assembly hall"
+        "페나코니 의회장에서의 공개 서약"
       ],
       "possessions": [
-        "Ceremonial notebook"
+        "의전용 수첩"
       ]
     }
   },
@@ -191,7 +375,7 @@
   "model_catalog": {
     "rp_stable_main": {
       "id": "rp_stable_main",
-      "label": "RP Stable Main",
+      "label": "RP 안정 메인",
       "provider": "ollama",
       "model": "qwen3.5:9b",
       "default_mode": "fast",
@@ -204,11 +388,11 @@
         "admin"
       ],
       "status": "active",
-      "description": "Default stable roleplay generation model."
+      "description": "기본 안정형 롤플레잉 생성 모델."
     },
     "emotion_focus_main": {
       "id": "emotion_focus_main",
-      "label": "Emotion Focus",
+      "label": "감정 집중",
       "provider": "ollama",
       "model": "qwen3.5:9b",
       "default_mode": "thinking",
@@ -220,11 +404,11 @@
         "admin"
       ],
       "status": "active",
-      "description": "Use when emotional nuance matters more than speed."
+      "description": "속도보다 감정 뉘앙스가 중요할 때 사용한다."
     },
     "qa_repro_admin": {
       "id": "qa_repro_admin",
-      "label": "QA Repro",
+      "label": "QA 재현",
       "provider": "ollama",
       "model": "qwen3.5:9b",
       "default_mode": "research",
@@ -236,11 +420,11 @@
         "admin"
       ],
       "status": "active",
-      "description": "Use for admin reproduction and low-cost QA runs."
+      "description": "관리자 재현과 저비용 QA 실행에 사용한다."
     },
     "repair_admin": {
       "id": "repair_admin",
-      "label": "Repair Assist",
+      "label": "수정 보조",
       "provider": "ollama",
       "model": "qwen3.5:9b",
       "default_mode": "thinking",
@@ -252,7 +436,44 @@
         "admin"
       ],
       "status": "deprecated",
-      "description": "Legacy repair-oriented profile kept for reproduction."
+      "description": "재현용으로 남겨둔 구형 수정 지향 프로필."
     }
-  }
+  },
+  "character_state": {},
+  "session_state": {
+    "default": {
+      "session_id": "default",
+      "branch_id": "default",
+      "active_location": "아스트랄 라운지 데크",
+      "active_phase": "opening",
+      "scene_flags": {
+        "intro_active": true
+      },
+      "status_notes": [
+        "기본 세션 상태"
+      ]
+    }
+  },
+  "branch_state": {
+    "default": {
+      "branch_id": "default",
+      "route_flags": {
+        "main_route": true
+      },
+      "hidden_facts_revealed": [],
+      "active_objectives": [
+        "대화 흐름 안정화"
+      ],
+      "unlock_conditions": {
+        "main_route": true
+      },
+      "hidden_facts": []
+    }
+  },
+  "turn_summary": {},
+  "session_summary": {},
+  "confirmed_facts": {},
+  "user_notes": {},
+  "session_notes": {}
 }
+
