@@ -52,7 +52,7 @@
 - user/session note
 - Prompt Watch 운영 가시화
 
-즉, 구조 골격은 `mellow_chat_runtime`이지만, SLM/RP 품질 계층은 케이브덕식 상태 기반 모델링 방향으로 상당 부분 이동한 상태입니다.
+즉, 구조 골격은 `mellow_chat_runtime`이지만, SLM/RP 품질 계층은 OOOO식 상태 기반 모델링 방향으로 상당 부분 이동한 상태입니다.
 
 ## 프로젝트 구조
 
